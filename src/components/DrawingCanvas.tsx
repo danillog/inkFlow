@@ -120,7 +120,7 @@ const DrawingCanvas: React.FC = () => {
       ctx.lineWidth = 2 / zoom;
 
       switch (shape.type) {
-        case "stroke":
+        case "stroke": {
           const processed = processStroke(shape.points);
           if (processed.length === 0) return;
           ctx.lineCap = "round";
@@ -133,6 +133,7 @@ const DrawingCanvas: React.FC = () => {
           });
           ctx.stroke();
           break;
+        }
         case "rectangle":
           ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
           if (shape.text) {
@@ -397,6 +398,9 @@ const DrawingCanvas: React.FC = () => {
       if (!startPoint || drawingTool === "pan") return;
 
       let updatedStroke: Partial<DrawingStroke> | null = null;
+
+      const textPayload = shapeText ? { text: shapeText } : {};
+
       switch (drawingTool) {
         case "pen":
           updatedStroke = {
@@ -415,9 +419,10 @@ const DrawingCanvas: React.FC = () => {
             y: startPoint.y,
             width: currentPoint.x - startPoint.x,
             height: currentPoint.y - startPoint.y,
+            ...textPayload,
           };
           break;
-        case "circle":
+        case "circle": {
           const dx = currentPoint.x - startPoint.x;
           const dy = currentPoint.y - startPoint.y;
           updatedStroke = {
@@ -425,9 +430,11 @@ const DrawingCanvas: React.FC = () => {
             cx: startPoint.x,
             cy: startPoint.y,
             radius: Math.sqrt(dx * dx + dy * dy),
+            ...textPayload,
           };
           break;
-        case "triangle":
+        }
+        case "triangle": {
           const p1 = startPoint;
           const p2 = { x: currentPoint.x, y: currentPoint.y };
           const midX = (p1.x + p2.x) / 2;
@@ -438,8 +445,10 @@ const DrawingCanvas: React.FC = () => {
             p1,
             p2,
             p3,
+            ...textPayload,
           };
           break;
+        }
       }
       if (updatedStroke) {
         localStroke.current = updatedStroke;
@@ -455,6 +464,7 @@ const DrawingCanvas: React.FC = () => {
       panOffset.x,
       panOffset.y,
       eraseAtPoint,
+      shapeText,
     ]
   );
 
