@@ -3,7 +3,7 @@ import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { useTaskStore } from '../store/taskStore';
 import { type Task, type DrawingStroke } from './db';
-// import { Awareness } from 'y-protocols/awareness'; <- Removed unused import
+import { Awareness } from 'y-protocols/awareness';
 import { create } from 'zustand';
 
 // --- A new simple store for tracking sync/peer status ---
@@ -53,8 +53,10 @@ export const connectYjs = (roomName: string) => {
 
   awareness.on('change', () => {
     // Update peer count whenever awareness state changes
-    useSyncStore.getState().setPeerCount(awareness.getStates().size);
-    console.log(`Awareness changed. Peers: ${awareness.getStates().size}`);
+    if (awareness) {
+      useSyncStore.getState().setPeerCount(awareness.getStates().size);
+      console.log(`Awareness changed. Peers: ${awareness.getStates().size}`);
+    }
   });
 
   // Corrected type for the 'status' event

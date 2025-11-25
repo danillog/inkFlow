@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useTaskStore } from '../store/taskStore'; // Changed import
-import { type Task } from '../lib/db'; // Import Task from db.ts
+import { type Task, db } from '../lib/db'; // Import Task and db from db.ts
 
 const RealityCheckContainer = styled.div`
   display: flex;
@@ -98,7 +98,6 @@ const ResetButton = styled.button`
 
 const RealityCheckView: React.FC = () => {
   const tasks = useTaskStore((state) => state.tasks);
-  const removeTask = useTaskStore((state) => state.removeTask);
   const setCurrentView = useTaskStore((state) => state.setCurrentView);
 
   const [completedToday, setCompletedToday] = useState<Task[]>([]);
@@ -116,20 +115,16 @@ const RealityCheckView: React.FC = () => {
     setTotalFocusTime(tasksCompletedToday.length * 25);
   }, [tasks]);
 
-  const handleEndDay = () => {
-    if (confirm('Encerrar o dia removerá todas as tarefas pendentes. Deseja continuar?')) {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-
-      tasks.forEach(task => {
-        if (task.status === 'pending' || task.status === 'aborted') {
-          if (task.createdAt < startOfToday.getTime()) {
-             removeTask(task.id);
-          } else {
-             removeTask(task.id);
-          }
-        }
-      });
+  const handleEndDay = async () => { // Make it async
+    if (confirm('Encerrar o dia removerá todas as tarefas, desenhos e notas. Deseja continuar?')) {
+      await db.tasks.clear(); // Clear all tasks
+      await db.drawingStrokes.clear(); // Clear all drawing strokes
+      // Add other database clear calls if more tables are added in the future
+      
+      // Explicitly update Zustand store and refresh canvas
+      useTaskStore.setState({ tasks: [], activeTaskId: null });
+      useTaskStore.getState().refreshCanvas();
+      
       setCurrentView('blackbox');
     }
   };

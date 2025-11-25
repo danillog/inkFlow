@@ -43,7 +43,7 @@ const TaskCard = styled.div`
   }
 `;
 
-const TaskContent = styled.span`
+const TaskContent = styled.span<{ $isCompleted: boolean }>`
   flex-grow: 1;
   font-size: 0.9rem;
   margin-right: 0.5rem;
@@ -51,6 +51,10 @@ const TaskContent = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(100% - 80px); /* Adjusted for smaller buttons */
+  text-decoration: ${(props) => (props.$isCompleted ? "line-through" : "none")};
+  color: ${(props) =>
+    props.$isCompleted ? "rgba(201, 209, 217, 0.5)" : AppColors.text};
+  transition: text-decoration 0.3s ease-in-out, color 0.3s ease-in-out;
 `;
 
 const ActionButtons = styled.div`
@@ -116,7 +120,9 @@ const TaskStack: React.FC = () => {
       ) : (
         tasks.map((task) => (
           <TaskCard key={task.id} draggable>
-            <TaskContent>{task.content}</TaskContent>
+            <TaskContent $isCompleted={task.status === "completed"}>
+              {task.content}
+            </TaskContent>
             <ActionButtons>
               <FocusButton onClick={() => setActiveTask(task.id)}>
                 Focar

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'line' | 'pan' | 'eraser' | 'triangle' | 'text';
+export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'pan' | 'eraser' | 'triangle';
 
 export const AppColors = {
   text: '#C9D1D9',

@@ -4,8 +4,8 @@ import { useInkEngine } from "../hooks/useInkEngine";
 import { db, type DrawingStroke } from "../lib/db";
 import { useTaskStore } from "../store/taskStore";
 import { useUIStore, AppColors, type DrawingTool } from "../store/uiStore";
-import { yStrokes, awareness, getYjsDoc } from "../lib/sync";
-import * as Y from "yjs";
+import { yStrokes, awareness } from "../lib/sync";
+import type { StrokeShape, RectangleShape, CircleShape, TriangleShape } from "../lib/db"; // Import shape interfaces as type-only
 
 const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
   position: absolute;
@@ -343,8 +343,9 @@ const DrawingCanvas: React.FC = () => {
         x: (screenX - rect.left - panOffset.x) / zoom,
         y: (screenY - rect.top - panOffset.y) / zoom,
       };
-    }
-  );
+    },
+    [panOffset, zoom]
+  )
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -354,16 +355,49 @@ const DrawingCanvas: React.FC = () => {
       const point = getScreenToWorldCoordinates(e.clientX, e.clientY);
       setStartPoint({ ...point, pressure: e.pressure || 0.5 });
 
-      if (drawingTool === "eraser") {
-        eraseAtPoint(point);
-      } else if (drawingTool !== "pan") {
+      // Initialize localStroke.current based on the drawingTool
+      const baseStroke = {
+        id: `stroke-${awareness?.clientID}-${Date.now()}`,
+        color: selectedColor,
+        clientID: awareness?.clientID,
+      };
+
+      if (drawingTool === "pen") {
         localStroke.current = {
-          id: `stroke-${awareness?.clientID}-${Date.now()}`,
-          type: drawingTool,
-          color: selectedColor,
+          ...baseStroke,
+          type: "stroke",
           points: [{ ...point, pressure: e.pressure || 0.5 }],
-          clientID: awareness?.clientID,
         };
+      } else if (drawingTool === "rectangle") {
+        localStroke.current = {
+          ...baseStroke,
+          type: "rectangle",
+          x: point.x,
+          y: point.y,
+          width: 0,
+          height: 0,
+        };
+      } else if (drawingTool === "circle") {
+        localStroke.current = {
+          ...baseStroke,
+          type: "circle",
+          cx: point.x,
+          cy: point.y,
+          radius: 0,
+        };
+      } else if (drawingTool === "triangle") {
+        localStroke.current = {
+          ...baseStroke,
+          type: "triangle",
+          p1: { ...point },
+          p2: { ...point },
+          p3: { ...point },
+        };
+      } else if (drawingTool === "eraser") {
+        eraseAtPoint(point);
+      } // pan tool doesn't create a localStroke
+      
+      if (drawingTool !== "pan" && drawingTool !== "eraser") {
         awareness?.setLocalStateField("drawing", localStroke.current);
       }
     },
@@ -373,6 +407,7 @@ const DrawingCanvas: React.FC = () => {
       drawingTool,
       eraseAtPoint,
       selectedColor,
+      awareness,
     ]
   );
 
@@ -402,45 +437,53 @@ const DrawingCanvas: React.FC = () => {
       const textPayload = shapeText ? { text: shapeText } : {};
 
       switch (drawingTool) {
-        case "pen":
+        case "pen": {
+          const currentPenStroke = localStroke.current as Partial<StrokeShape>;
           updatedStroke = {
-            ...localStroke.current,
+            ...currentPenStroke,
             type: "stroke",
             points: [
-              ...(localStroke.current.points || []),
+              ...(currentPenStroke.points || []),
               { ...currentPoint, pressure: e.pressure || 0.5 },
             ],
           };
           break;
-        case "rectangle":
+        }
+        case "rectangle": {
+          const currentRect = localStroke.current as Partial<RectangleShape>;
           updatedStroke = {
-            ...localStroke.current,
-            x: startPoint.x,
-            y: startPoint.y,
-            width: currentPoint.x - startPoint.x,
-            height: currentPoint.y - startPoint.y,
+            ...currentRect,
+            type: "rectangle",
+            x: startPoint!.x,
+            y: startPoint!.y,
+            width: currentPoint.x - startPoint!.x,
+            height: currentPoint.y - startPoint!.y,
             ...textPayload,
           };
           break;
+        }
         case "circle": {
-          const dx = currentPoint.x - startPoint.x;
-          const dy = currentPoint.y - startPoint.y;
+          const currentCircle = localStroke.current as Partial<CircleShape>;
+          const dx = currentPoint.x - startPoint!.x;
+          const dy = currentPoint.y - startPoint!.y;
           updatedStroke = {
-            ...localStroke.current,
-            cx: startPoint.x,
-            cy: startPoint.y,
+            ...currentCircle,
+            type: "circle",
+            cx: startPoint!.x,
+            cy: startPoint!.y,
             radius: Math.sqrt(dx * dx + dy * dy),
             ...textPayload,
           };
           break;
         }
         case "triangle": {
-          const p1 = startPoint;
+          const currentTriangle = localStroke.current as Partial<TriangleShape>;
+          const p1 = startPoint!;
           const p2 = { x: currentPoint.x, y: currentPoint.y };
           const midX = (p1.x + p2.x) / 2;
           const p3 = { x: midX, y: p1.y - (p2.x - p1.x) * 0.5 };
           updatedStroke = {
-            ...localStroke.current,
+            ...currentTriangle,
             type: "triangle",
             p1,
             p2,
@@ -465,6 +508,7 @@ const DrawingCanvas: React.FC = () => {
       panOffset.y,
       eraseAtPoint,
       shapeText,
+      awareness,
     ]
   );
 
@@ -488,8 +532,9 @@ const DrawingCanvas: React.FC = () => {
           text: isShapeTool ? shapeText : undefined,
         } as DrawingStroke;
 
+        // Corrected type comparison from "pen" to "stroke"
         if (
-          finalShape.type === "pen" &&
+          finalShape.type === "stroke" &&
           (!finalShape.points || finalShape.points.length < 2)
         )
           return;
@@ -501,7 +546,7 @@ const DrawingCanvas: React.FC = () => {
       localStroke.current = {};
       setStartPoint(null);
     },
-    [isDrawing, drawingTool, shapeText]
+    [isDrawing, drawingTool, shapeText, awareness]
   );
 
   const handleWheel = useCallback(
