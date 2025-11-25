@@ -1,0 +1,64 @@
+import React, { useState, useCallback } from 'react';
+import styled from 'styled-components';
+import { useTaskStore } from '../store/taskStore';
+
+const QuickCaptureContainer = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background-color: #161B22; /* Surface color from Design System */
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+`;
+
+const QuickCaptureInput = styled.input`
+  width: 80%;
+  max-width: 600px;
+  padding: 0.8rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #0D1117; /* Background color for input */
+  color: #C9D1D9;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  outline: none;
+
+  &::placeholder {
+    color: rgba(201, 209, 217, 0.5);
+  }
+
+  &:focus {
+    border-color: #238636; /* Primary color on focus */
+  }
+`;
+
+const QuickCapture: React.FC = () => {
+  const [inputValue, setInputValue] = useState('');
+  const addTask = useTaskStore((state) => state.addTask);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      addTask(inputValue.trim());
+      setInputValue('');
+    }
+  }, [inputValue, addTask]);
+
+  return (
+    <QuickCaptureContainer>
+      <QuickCaptureInput
+        type="text"
+        placeholder="Adicione uma tarefa rápida e pressione Enter..."
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyPress={handleKeyPress}
+      />
+    </QuickCaptureContainer>
+  );
+};
+
+export default QuickCapture;
