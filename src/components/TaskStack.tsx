@@ -1,14 +1,15 @@
-import React from 'react';
-import styled from 'styled-components';
-import { useTaskStore } from '../store/taskStore';
+import React from "react";
+import styled from "styled-components";
+import { useTaskStore } from "../store/taskStore";
+import { AppColors } from "../store/uiStore";
 
 const TaskStackContainer = styled.div`
   width: 250px;
-  background-color: #161B22; /* Surface color from Design System */
+  background-color: #161b22; /* Surface color from Design System */
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1rem;
-  color: #C9D1D9;
-  font-family: 'Inter', sans-serif;
+  color: #c9d1d9;
+  font-family: "Inter", sans-serif;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -25,18 +26,20 @@ const TaskStackContainer = styled.div`
 `;
 
 const TaskCard = styled.div`
-  background-color: #0D1117; /* Darker background for cards */
+  background-color: #0d1117; /* Darker background for cards */
   padding: 0.8rem;
   border-radius: 8px;
   cursor: grab;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   display: flex;
-  flex-wrap: wrap; /* Allow content to wrap */
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  position: relative;
+  transition: all 0.3s ease-in-out;
 
   &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
   }
 `;
 
@@ -44,36 +47,59 @@ const TaskContent = styled.span`
   flex-grow: 1;
   font-size: 0.9rem;
   margin-right: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 80px); /* Adjusted for smaller buttons */
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 0.3rem; /* Reduced gap */
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none; /* Make buttons non-interactive when hidden */
+
+  ${TaskCard}:hover & {
+    opacity: 1;
+    pointer-events: all; /* Make buttons interactive on hover */
+  }
 `;
 
 const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: #F778BA; /* Accent color for remove */
-  font-size: 1rem;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: rgba(201, 209, 217, 0.6); /* More subtle default color */
+  font-size: 0.9rem; /* Smaller font size */
   cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 
   &:hover {
-    color: #BB86FC; /* Lighter accent on hover */
+    color: #e3342f;
+    border: none;
   }
 `;
 
 const FocusButton = styled.button`
-  background-color: #238636; /* Primary color for focus */
-  color: #C9D1D9;
+  background-color: ${AppColors.primary}; /* Primary color for focus */
+  color: ${AppColors.text};
   border: none;
-  padding: 0.3rem 0.6rem;
+  padding: 0.4rem 0.8rem; /* Adjusted padding */
   border-radius: 5px;
   cursor: pointer;
   font-size: 0.8rem;
+  font-weight: 600; /* Bolder font */
+  transition: background-color 0.2s, opacity 0.2s;
 
   &:hover {
-    opacity: 0.9;
+    background-color: #2d9b40; /* Slightly darker primary on hover */
+    opacity: 1; /* Remove explicit opacity change, rely on background */
   }
 `;
 
@@ -92,8 +118,10 @@ const TaskStack: React.FC = () => {
           <TaskCard key={task.id} draggable>
             <TaskContent>{task.content}</TaskContent>
             <ActionButtons>
-                <FocusButton onClick={() => setActiveTask(task.id)}>Focar</FocusButton>
-                <RemoveButton onClick={() => removeTask(task.id)}>X</RemoveButton>
+              <FocusButton onClick={() => setActiveTask(task.id)}>
+                Focar
+              </FocusButton>
+              <RemoveButton onClick={() => removeTask(task.id)}>X</RemoveButton>
             </ActionButtons>
           </TaskCard>
         ))
