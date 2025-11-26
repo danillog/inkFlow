@@ -1,0 +1,8 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blackboard/Whiteboard -->
+  <rect x="8" y="12" width="48" height="40" rx="4" fill="#161B22"/>
+  <rect x="8" y="12" width="48" height="40" rx="4" stroke="#C9D1D9" stroke-width="2"/>
+  
+  <!-- Chalk/Eraser mark -->
+  <path d="M18 42L26 42" stroke="#238636" stroke-width="4" stroke-linecap="round"/>
+</svg>

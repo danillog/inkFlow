@@ -2,6 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import { useUIStore, AppColors, type DrawingTool } from "../store/uiStore";
 import { yStrokes, awareness } from "../lib/sync";
+import { useTranslation } from "react-i18next";
 
 const ToolbarContainer = styled.div`
   position: absolute;
@@ -15,6 +16,7 @@ const ToolbarContainer = styled.div`
   gap: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 100;
+  width: auto;
 `;
 
 const ToolButton = styled.button<{ $isSelected: boolean }>`
@@ -30,6 +32,7 @@ const ToolButton = styled.button<{ $isSelected: boolean }>`
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
+  font-size: 1.2rem;
 
   &:hover {
     border-color: ${AppColors.text};
@@ -47,11 +50,11 @@ const SymbolInput = styled.input`
   color: ${AppColors.text};
   border: 1px solid ${AppColors.surface};
   border-radius: 6px;
-  width: 40px;
+  width: 100%;
   height: 40px;
   text-align: center;
-  font-size: 1.5rem;
-  padding: 0;
+  font-size: 1rem;
+  padding: 0 8px;
   box-sizing: border-box;
 
   &:focus {
@@ -70,7 +73,16 @@ const tools: { name: DrawingTool; icon: string }[] = [
 ];
 
 const DrawingToolbar: React.FC = () => {
-  const { drawingTool, setDrawingTool, shapeText, setShapeText } = useUIStore();
+  const { 
+    drawingTool, 
+    setDrawingTool, 
+    shapeText, 
+    setShapeText,
+    drawingInputMode,
+    toggleDrawingInputMode
+  } = useUIStore();
+  const { t } = useTranslation();
+
   const isShapeTool =
     drawingTool === "rectangle" ||
     drawingTool === "circle" ||
@@ -104,13 +116,21 @@ const DrawingToolbar: React.FC = () => {
         <SymbolInput
           type="text"
           value={shapeText}
-          onChange={(e) => setShapeText(e.target.value.slice(0, 2))}
-          maxLength={2}
-          placeholder="?"
+          onChange={(e) => setShapeText(e.target.value)}
+          maxLength={100}
+          placeholder="text..."
         />
       )}
       <ToolButton onClick={handleUndo} $isSelected={false} title="Undo">
         ↩️
+      </ToolButton>
+      <Separator />
+      <ToolButton 
+        onClick={toggleDrawingInputMode} 
+        $isSelected={false} 
+        title={drawingInputMode === 'pen' ? t('toolbar.pen_mode') : t('toolbar.touch_mode')}
+      >
+        {drawingInputMode === 'pen' ? '🖊️' : '👆'}
       </ToolButton>
     </ToolbarContainer>
   );

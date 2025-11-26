@@ -1,0 +1,61 @@
+{
+  "landing": {
+    "title": "Onde as Ideias Fluem e o Trabalho Acontece",
+    "subtitle": "O Anti-Todo List para Super-Pensadores.",
+    "cta": "Experimente o InkFlow (Não é necessário login)",
+    "benefits_over_paper": {
+      "title": "Por que o InkFlow é Melhor que o Papel",
+      "infinite_space": {
+        "title": "Espaço Infinito",
+        "text": "Nunca fique sem espaço para suas ideias. Sua tela é ilimitada."
+      },
+      "collaboration": {
+        "title": "Colaboração em Tempo Real",
+        "text": "Colabore em tempo real. Uma conexão ponto a ponto que funciona na maioria das redes, sem a necessidade de um servidor central."
+      },
+      "non_destructive": {
+        "title": "Não Destrutivo & Editável",
+        "text": "Apague, mova e redimensione suas ideias sem deixar rastros. A perfeição está a apenas uma edição de distância."
+      },
+      "integrated_tools": {
+        "title": "Kit de Ferramentas Tudo-em-Um",
+        "text": "Suas anotações, tarefas e temporizadores de foco estão todos em um único espaço de trabalho integrado."
+      },
+      "eco_friendly": {
+        "title": "Ecológico",
+        "text": "Salve árvores e reduza o desperdício. Seu espaço de trabalho digital é sua contribuição para um planeta mais verde."
+      }
+    },
+    "pain_section": {
+      "title": "A Dor: Paralisia por Análise",
+      "text": "Você é um criador. Um desenvolvedor. Sua mente gera ideias mais rápido do que você consegue anotá-las. Mas as ferramentas tradicionais te forçam a um ciclo vicioso: listas infinitas, backlogs assustadores e a procrastinação que vem com a sobrecarga. Cada nova ideia se torna uma dívida. A dopamina barata das redes sociais parece mais atraente do que encarar a montanha de tarefas que você mesmo criou."
+    },
+    "solution_section": {
+      "title": "A Solução: Black Box ➔ Sniper Mode",
+      "text": "InkFlow quebra esse ciclo com um método de dois passos.<br/><br/><strong>1. Black Box:</strong> Um canvas infinito para capturar tudo — código, esboços, ideias — sem atrito. Sem julgamento. Apenas flua.<br/><br/><strong>2. Sniper Mode:</strong> Arraste UMA tarefa da sua pilha para o modo de foco total. Um timer Pomodoro te protege, e um canvas de contexto mantém as informações relevantes à mão. Nada mais existe. Apenas você e a sua missão."
+    },
+    "engineering_section": {
+      "title": "Mostruário de Engenharia",
+      "intro": "InkFlow foi construído com performance e privacidade como pilares.",
+      "question": "\"Por que C++ para desenhar na web?\"",
+      "answer": "Para atingir latência zero. A engine de desenho é escrita em C++ e compilada para WebAssembly, garantindo que a sua caneta digital seja uma extensão do seu pensamento, não um obstáculo.",
+      "tech_stack": {
+        "engine": "Motor C++ Wasm",
+        "arch": "Arquitetura Local-First",
+        "frontend": "React & TypeScript",
+        "db": "IndexedDB",
+        "sync": "Y.js (Sincronia P2P)"
+      },
+      "explore": "Explore o código e a arquitetura no"
+    }
+  },
+  "pomodoro": {
+    "duration_label": "Tempo de foco (minutos)",
+    "start_button": "Iniciar",
+    "reset_button": "Resetar"
+  },
+  "toolbar": {
+    "pen_mode": "Apenas Caneta",
+    "touch_mode": "Caneta e Toque"
+  }
+}

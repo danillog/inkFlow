@@ -347,206 +347,195 @@ const DrawingCanvas: React.FC = () => {
     [panOffset, zoom]
   )
 
+  // Refs for gesture management
+  const activePointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchStartDistance = useRef(0);
+  const gestureState = useRef<'drawing' | 'panning' | 'pinching' | null>(null);
+
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (e.button !== 0 || e.pointerType === "touch" || !isLoaded) return;
+      if (!isLoaded) return;
       (e.target as HTMLDivElement).setPointerCapture(e.pointerId);
-      setIsDrawing(true);
-      const point = getScreenToWorldCoordinates(e.clientX, e.clientY);
-      setStartPoint({ ...point, pressure: e.pressure || 0.5 });
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      // Initialize localStroke.current based on the drawingTool
-      const baseStroke = {
-        id: `stroke-${awareness?.clientID}-${Date.now()}`,
-        color: selectedColor,
-        clientID: awareness?.clientID,
-      };
-
-      if (drawingTool === "pen") {
-        localStroke.current = {
-          ...baseStroke,
-          type: "stroke",
-          points: [{ ...point, pressure: e.pressure || 0.5 }],
-        };
-      } else if (drawingTool === "rectangle") {
-        localStroke.current = {
-          ...baseStroke,
-          type: "rectangle",
-          x: point.x,
-          y: point.y,
-          width: 0,
-          height: 0,
-        };
-      } else if (drawingTool === "circle") {
-        localStroke.current = {
-          ...baseStroke,
-          type: "circle",
-          cx: point.x,
-          cy: point.y,
-          radius: 0,
-        };
-      } else if (drawingTool === "triangle") {
-        localStroke.current = {
-          ...baseStroke,
-          type: "triangle",
-          p1: { ...point },
-          p2: { ...point },
-          p3: { ...point },
-        };
-      } else if (drawingTool === "eraser") {
-        eraseAtPoint(point);
-      } // pan tool doesn't create a localStroke
+      // Two fingers down: start pinching
+      if (activePointers.current.size === 2) {
+        gestureState.current = 'pinching';
+        const pointers = Array.from(activePointers.current.values());
+        const dx = pointers[0].x - pointers[1].x;
+        const dy = pointers[0].y - pointers[1].y;
+        pinchStartDistance.current = Math.sqrt(dx * dx + dy * dy);
+        // Stop any drawing that might have started
+        setIsDrawing(false);
+        localStroke.current = {};
+        awareness?.setLocalStateField("drawing", null);
+        return;
+      }
       
-      if (drawingTool !== "pan" && drawingTool !== "eraser") {
-        awareness?.setLocalStateField("drawing", localStroke.current);
+      // One finger down: start drawing or panning
+      if (activePointers.current.size === 1) {
+        const { drawingInputMode } = useUIStore.getState();
+        // Ignore touch if in pen-only mode AND it's not the pan tool
+        if (drawingTool !== 'pan' && drawingInputMode === 'pen' && e.pointerType === 'touch') {
+          return;
+        }
+
+        const point = getScreenToWorldCoordinates(e.clientX, e.clientY);
+        setStartPoint({ ...point, pressure: e.pressure || 0.5 });
+        setIsDrawing(true); // Optimistically set to true
+
+        if (drawingTool === 'pan' || (drawingInputMode === 'touch' && e.pointerType === 'touch' && drawingTool !== 'pen' && drawingTool !== 'eraser' )) {
+            gestureState.current = 'panning';
+        } else {
+            gestureState.current = 'drawing';
+        }
+
+        if (gestureState.current === 'drawing') {
+            const baseStroke = {
+                id: `stroke-${awareness?.clientID}-${Date.now()}`,
+                color: selectedColor,
+                clientID: awareness?.clientID,
+            };
+
+            if (drawingTool === "pen") {
+                localStroke.current = { ...baseStroke, type: "stroke", points: [{...point, pressure: e.pressure || 0.5}], };
+            } else if (drawingTool === "rectangle") {
+                localStroke.current = { ...baseStroke, type: "rectangle", x: point.x, y: point.y, width: 0, height: 0, };
+            } else if (drawingTool === "circle") {
+                localStroke.current = { ...baseStroke, type: "circle", cx: point.x, cy: point.y, radius: 0, };
+            } else if (drawingTool === "triangle") {
+                localStroke.current = { ...baseStroke, type: "triangle", p1: { ...point }, p2: { ...point }, p3: { ...point }, };
+            } else if (drawingTool === "eraser") {
+                eraseAtPoint(point);
+            }
+            if (drawingTool !== "pan" && drawingTool !== "eraser") {
+                awareness?.setLocalStateField("drawing", localStroke.current);
+            }
+        }
       }
     },
-    [
-      isLoaded,
-      getScreenToWorldCoordinates,
-      drawingTool,
-      eraseAtPoint,
-      selectedColor,
-      awareness,
-    ]
+    [ isLoaded, drawingTool, getScreenToWorldCoordinates, eraseAtPoint, selectedColor, awareness ]
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      const currentPoint = getScreenToWorldCoordinates(e.clientX, e.clientY);
-      lastMousePosition.current = currentPoint;
+      if (!activePointers.current.has(e.pointerId)) return;
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (!isDrawing) return;
+      // Pinching logic
+      if (gestureState.current === 'pinching' && activePointers.current.size === 2) {
+        const pointers = Array.from(activePointers.current.values());
+        const dx = pointers[0].x - pointers[1].x;
+        const dy = pointers[0].y - pointers[1].y;
+        const newDist = Math.sqrt(dx * dx + dy * dy);
+        const scale = newDist / pinchStartDistance.current;
+        
+        const midPoint = { x: (pointers[0].x + pointers[1].x) / 2, y: (pointers[0].y + pointers[1].y) / 2 };
+        const worldPos = getScreenToWorldCoordinates(midPoint.x, midPoint.y);
 
-      if (drawingTool === "pan" && startPoint) {
+        const newZoom = Math.max(0.1, Math.min(zoom * scale, 20));
+        
+        const newPanX = midPoint.x - worldPos.x * newZoom;
+        const newPanY = midPoint.y - worldPos.y * newZoom;
+
+        setZoom(newZoom);
+        setPanOffset({x: newPanX, y: newPanY});
+
+        pinchStartDistance.current = newDist;
+        return; // Don't do other things while pinching
+      }
+      
+      // Panning logic for a single pointer
+      if (gestureState.current === 'panning' && isDrawing) {
         setPanOffset({
           x: panOffset.x + e.movementX,
           y: panOffset.y + e.movementY,
         });
         return;
       }
-      if (drawingTool === "eraser") {
-        eraseAtPoint(currentPoint);
-        return;
-      }
+      
+      // Drawing logic
+      if (gestureState.current === 'drawing' && isDrawing) {
+          const currentPoint = getScreenToWorldCoordinates(e.clientX, e.clientY);
+          lastMousePosition.current = currentPoint;
 
-      if (!startPoint || drawingTool === "pan") return;
-
-      let updatedStroke: Partial<DrawingStroke> | null = null;
-
-      const textPayload = shapeText ? { text: shapeText } : {};
-
-      switch (drawingTool) {
-        case "pen": {
-          const currentPenStroke = localStroke.current as Partial<StrokeShape>;
-          updatedStroke = {
-            ...currentPenStroke,
-            type: "stroke",
-            points: [
-              ...(currentPenStroke.points || []),
-              { ...currentPoint, pressure: e.pressure || 0.5 },
-            ],
-          };
-          break;
-        }
-        case "rectangle": {
-          const currentRect = localStroke.current as Partial<RectangleShape>;
-          updatedStroke = {
-            ...currentRect,
-            type: "rectangle",
-            x: startPoint!.x,
-            y: startPoint!.y,
-            width: currentPoint.x - startPoint!.x,
-            height: currentPoint.y - startPoint!.y,
-            ...textPayload,
-          };
-          break;
-        }
-        case "circle": {
-          const currentCircle = localStroke.current as Partial<CircleShape>;
-          const dx = currentPoint.x - startPoint!.x;
-          const dy = currentPoint.y - startPoint!.y;
-          updatedStroke = {
-            ...currentCircle,
-            type: "circle",
-            cx: startPoint!.x,
-            cy: startPoint!.y,
-            radius: Math.sqrt(dx * dx + dy * dy),
-            ...textPayload,
-          };
-          break;
-        }
-        case "triangle": {
-          const currentTriangle = localStroke.current as Partial<TriangleShape>;
-          const p1 = startPoint!;
-          const p2 = { x: currentPoint.x, y: currentPoint.y };
-          const midX = (p1.x + p2.x) / 2;
-          const p3 = { x: midX, y: p1.y - (p2.x - p1.x) * 0.5 };
-          updatedStroke = {
-            ...currentTriangle,
-            type: "triangle",
-            p1,
-            p2,
-            p3,
-            ...textPayload,
-          };
-          break;
-        }
-      }
-      if (updatedStroke) {
-        localStroke.current = updatedStroke;
-        awareness?.setLocalStateField("drawing", updatedStroke);
+          if (drawingTool === "eraser") {
+            eraseAtPoint(currentPoint);
+            return;
+          }
+    
+          if (!startPoint) return;
+    
+          let updatedStroke: Partial<DrawingStroke> | null = null;
+          const textPayload = shapeText ? { text: shapeText } : {};
+    
+          switch (drawingTool) {
+            case "pen": {
+              const currentPenStroke = localStroke.current as Partial<StrokeShape>;
+              updatedStroke = { ...currentPenStroke, type: "stroke", points: [ ...(currentPenStroke.points || []), { ...currentPoint, pressure: e.pressure || 0.5 }, ], };
+              break;
+            }
+            case "rectangle": {
+              updatedStroke = { ...localStroke.current, type: "rectangle", x: startPoint.x, y: startPoint.y, width: currentPoint.x - startPoint.x, height: currentPoint.y - startPoint.y, ...textPayload, };
+              break;
+            }
+            case "circle": {
+              const dx = currentPoint.x - startPoint.x;
+              const dy = currentPoint.y - startPoint.y;
+              updatedStroke = { ...localStroke.current, type: "circle", cx: startPoint.x, cy: startPoint.y, radius: Math.sqrt(dx * dx + dy * dy), ...textPayload, };
+              break;
+            }
+            case "triangle": {
+              const p1 = startPoint;
+              const p2 = { x: currentPoint.x, y: currentPoint.y };
+              const midX = (p1.x + p2.x) / 2;
+              const p3 = { x: midX, y: p1.y - (p2.x - p1.x) * 0.5 };
+              updatedStroke = { ...localStroke.current, type: "triangle", p1, p2, p3, ...textPayload, };
+              break;
+            }
+          }
+          if (updatedStroke) {
+            localStroke.current = updatedStroke;
+            awareness?.setLocalStateField("drawing", updatedStroke);
+          }
       }
     },
-    [
-      getScreenToWorldCoordinates,
-      isDrawing,
-      drawingTool,
-      startPoint,
-      setPanOffset,
-      panOffset.x,
-      panOffset.y,
-      eraseAtPoint,
-      shapeText,
-      awareness,
-    ]
+    [ isDrawing, drawingTool, startPoint, panOffset, zoom, getScreenToWorldCoordinates, setZoom, setPanOffset, eraseAtPoint, shapeText, awareness ]
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDrawing) return;
       (e.target as HTMLDivElement).releasePointerCapture(e.pointerId);
-      setIsDrawing(false);
+      activePointers.current.delete(e.pointerId);
 
-      if (
-        drawingTool !== "pan" &&
-        drawingTool !== "eraser" &&
-        localStroke.current.type
-      ) {
-        const isShapeTool =
-          drawingTool === "rectangle" ||
-          drawingTool === "circle" ||
-          drawingTool === "triangle";
-        const finalShape = {
-          ...localStroke.current,
-          text: isShapeTool ? shapeText : undefined,
-        } as DrawingStroke;
-
-        // Corrected type comparison from "pen" to "stroke"
-        if (
-          finalShape.type === "stroke" &&
-          (!finalShape.points || finalShape.points.length < 2)
-        )
-          return;
-
-        yStrokes.push([finalShape]); // Sync with others. The listener will handle the rest.
+      // End of a pinch
+      if (gestureState.current === 'pinching' && activePointers.current.size < 2) {
+          gestureState.current = null;
+          pinchStartDistance.current = 0;
       }
-
-      awareness?.setLocalStateField("drawing", null);
-      localStroke.current = {};
-      setStartPoint(null);
+      
+      // Last pointer is lifted
+      if (activePointers.current.size < 1) {
+          if (gestureState.current === 'drawing' && localStroke.current.type) {
+            const isShapeTool = drawingTool === "rectangle" || drawingTool === "circle" || drawingTool === "triangle";
+            const finalShape = { ...localStroke.current, text: isShapeTool ? shapeText : undefined, } as DrawingStroke;
+    
+            if (finalShape.type === "stroke" && (!finalShape.points || finalShape.points.length < 2)) {
+                // Do not save dot strokes
+            } else {
+                yStrokes.push([finalShape]);
+            }
+          }
+    
+          gestureState.current = null;
+          setIsDrawing(false);
+          setStartPoint(null);
+          localStroke.current = {};
+          awareness?.setLocalStateField("drawing", null);
+      }
     },
-    [isDrawing, drawingTool, shapeText, awareness]
+    [drawingTool, shapeText, awareness]
   );
 
   const handleWheel = useCallback(

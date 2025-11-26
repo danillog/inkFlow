@@ -1,6 +1,7 @@
-import React from 'react';
-import styled, { keyframes } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import styled, { keyframes } from "styled-components";
+import { useNavigate } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 
 const fadeIn = keyframes`
   from {
@@ -14,14 +15,18 @@ const fadeIn = keyframes`
 `;
 
 const PageContainer = styled.div`
-  background-color: #0D1117;
-  color: #C9D1D9;
-  font-family: 'Inter', sans-serif;
+  background-color: #0d1117;
+  color: #c9d1d9;
+  font-family: "Inter", sans-serif;
   padding: 2rem 4rem;
   animation: ${fadeIn} 1s ease-out;
   max-width: 1000px;
   margin: auto;
   text-align: center;
+
+  @media (max-width: 768px) {
+    padding: 1rem 2rem;
+  }
 `;
 
 const Header = styled.header`
@@ -31,20 +36,28 @@ const Header = styled.header`
 
 const HeroTitle = styled.h1`
   font-size: 3.5rem;
-  color: #C9D1D9;
+  color: #c9d1d9;
   margin: 0;
   font-weight: 800;
+
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+  }
 `;
 
 const HeroSubtitle = styled.p`
   font-size: 1.5rem;
-  color: #F778BA; /* Accent color */
+  color: #f778ba; /* Accent color */
   margin-top: 0.5rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
 `;
 
 const CTAButton = styled.button`
   background-color: #238636;
-  color: #FFFFFF;
+  color: #ffffff;
   border: none;
   padding: 1rem 2.5rem;
   border-radius: 8px;
@@ -63,10 +76,10 @@ const CTAButton = styled.button`
 const Section = styled.section`
   padding: 4rem 0;
   text-align: left;
-  
+
   h2 {
     font-size: 2.5rem;
-    color: #F778BA;
+    color: #f778ba;
     border-bottom: 2px solid #238636;
     padding-bottom: 0.5rem;
     display: inline-block;
@@ -75,8 +88,18 @@ const Section = styled.section`
   p {
     font-size: 1.1rem;
     line-height: 1.8;
-    color: #C9D1D9;
+    color: #c9d1d9;
     max-width: 80ch;
+  }
+
+  @media (max-width: 768px) {
+    padding: 2.5rem 0;
+    h2 {
+      font-size: 2rem;
+    }
+    p {
+      font-size: 1rem;
+    }
   }
 `;
 
@@ -85,71 +108,166 @@ const TechStack = styled.div`
   flex-wrap: wrap;
   gap: 1rem;
   margin-top: 2rem;
+  justify-content: center;
 
   span {
-    background-color: #161B22;
+    background-color: #161b22;
     padding: 0.5rem 1rem;
     border-radius: 5px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "JetBrains Mono", monospace;
   }
 `;
 
-const LandingPageView: React.FC = () => {
-    const navigate = useNavigate();
+const BenefitGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+  text-align: left;
+`;
 
-    const handleEnterApp = () => {
-        navigate('/app');
-    };
+const BenefitCard = styled.div`
+  background: #161b22;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #238636;
+  h3 {
+    margin-top: 0;
+    color: #c9d1d9;
+  }
+  p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+`;
+
+const LanguageSwitcherContainer = styled.div`
+  padding: 1rem;
+  text-align: center;
+`;
+
+const LanguageButton = styled.button`
+  background: none;
+  border: 1px solid #238636;
+  color: #c9d1d9;
+  padding: 0.5rem 1rem;
+  margin: 0 0.5rem;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 0.9rem;
+
+  &.active {
+    background: #238636;
+    color: #fff;
+  }
+`;
+
+const LanguageSwitcher: React.FC = () => {
+  const { i18n } = useTranslation();
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
+
+  return (
+    <LanguageSwitcherContainer>
+      <LanguageButton
+        onClick={() => changeLanguage("en")}
+        className={i18n.language === "en" ? "active" : ""}
+      >
+        English
+      </LanguageButton>
+      <LanguageButton
+        onClick={() => changeLanguage("pt")}
+        className={i18n.language.startsWith("pt") ? "active" : ""}
+      >
+        Português
+      </LanguageButton>
+    </LanguageSwitcherContainer>
+  );
+};
+
+const LandingPageView: React.FC = () => {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const handleEnterApp = () => {
+    navigate("/app");
+  };
+
+  const benefits = [
+    "infinite_space",
+    "collaboration",
+    "non_destructive",
+    "integrated_tools",
+    "eco_friendly",
+  ];
 
   return (
     <PageContainer>
+      <LanguageSwitcher />
       <Header>
-        <HeroTitle>Pare de Planejar. Comece a Executar.</HeroTitle>
-        <HeroSubtitle>O Anti-Todo List para Super-Pensadores.</HeroSubtitle>
-        <CTAButton onClick={handleEnterApp}>
-          Try InkFlow (No Login Required)
-        </CTAButton>
+        <HeroTitle>{t("landing.title")}</HeroTitle>
+        <HeroSubtitle>{t("landing.subtitle")}</HeroSubtitle>
+        <CTAButton onClick={handleEnterApp}>{t("landing.cta")}</CTAButton>
       </Header>
 
       <Section>
-        <h2>A Dor: Paralisia por Análise</h2>
-        <p>
-          Você é um criador. Um desenvolvedor. Sua mente gera ideias mais rápido do que você consegue anotá-las. 
-          Mas as ferramentas tradicionais te forçam a um ciclo vicioso: listas infinitas, backlogs assustadores e a procrastinação que vem com a sobrecarga. 
-          Cada nova ideia se torna uma dívida. A dopamina barata das redes sociais parece mais atraente do que encarar a montanha de tarefas que você mesmo criou.
-        </p>
+        <h2>{t("landing.pain_section.title")}</h2>
+        <p>{t("landing.pain_section.text")}</p>
       </Section>
 
       <Section>
-        <h2>A Solução: Black Box ➔ Sniper Mode</h2>
-        <p>
-          InkFlow quebra esse ciclo com um método de dois passos.
-          <br/><br/>
-          <strong>1. Black Box:</strong> Um canvas infinito para capturar tudo — código, esboços, ideias — sem atrito. Sem julgamento. Apenas flua.
-          <br/><br/>
-          <strong>2. Sniper Mode:</strong> Arraste UMA tarefa da sua pilha para o modo de foco total. Um timer Pomodoro te protege, e um canvas de contexto mantém as informações relevantes à mão. Nada mais existe. Apenas você e a sua missão.
-        </p>
+        <h2>{t("landing.solution_section.title")}</h2>
+        <p
+          dangerouslySetInnerHTML={{
+            __html: t("landing.solution_section.text"),
+          }}
+        />
       </Section>
 
-      <Section style={{ textAlign: 'center' }}>
-        <h2>Engineering Showcase</h2>
-        <p style={{ maxWidth: '100%' }}>
-          InkFlow foi construído com performance e privacidade como pilares.
-          <br/>
-          <strong>"Por que C++ para desenhar na web?"</strong> Para atingir latência zero. A engine de desenho é escrita em C++ e compilada para WebAssembly, garantindo que a sua caneta digital seja uma extensão do seu pensamento, não um obstáculo.
+      <Section>
+        <h2 style={{ textAlign: "center", display: "block" }}>
+          {t("landing.benefits_over_paper.title")}
+        </h2>
+        <BenefitGrid>
+          {benefits.map((benefit) => (
+            <BenefitCard key={benefit}>
+              <h3>{t(`landing.benefits_over_paper.${benefit}.title`)}</h3>
+              <p>{t(`landing.benefits_over_paper.${benefit}.text`)}</p>
+            </BenefitCard>
+          ))}
+        </BenefitGrid>
+      </Section>
+
+      <Section style={{ textAlign: "center" }}>
+        <h2>{t("landing.engineering_section.title")}</h2>
+        <p style={{ maxWidth: "100%" }}>
+          {t("landing.engineering_section.intro")}
+          <br />
+          <strong>{t("landing.engineering_section.question")}</strong>{" "}
+          {t("landing.engineering_section.answer")}
         </p>
-        <TechStack style={{ justifyContent: 'center' }}>
-          <span>C++ Wasm Engine</span>
-          <span>Local-First Architecture</span>
-          <span>React & TypeScript</span>
-          <span>IndexedDB</span>
-          <span>Y.js (P2P Sync)</span>
+        <TechStack>
+          <span>{t("landing.engineering_section.tech_stack.engine")}</span>
+          <span>{t("landing.engineering_section.tech_stack.arch")}</span>
+          <span>{t("landing.engineering_section.tech_stack.frontend")}</span>
+          <span>{t("landing.engineering_section.tech_stack.db")}</span>
+          <span>{t("landing.engineering_section.tech_stack.sync")}</span>
         </TechStack>
-        <p style={{ marginTop: '2rem' }}>
-          Explore o código e a arquitetura no <a href="https://github.com/DanilloGomes/inkFlow" target="_blank" rel="noopener noreferrer" style={{ color: '#F778BA' }}>GitHub</a>.
+        <p style={{ marginTop: "2rem" }}>
+          <Trans i18nKey="landing.engineering_section.explore"></Trans>{" "}
+          <a
+            href="https://github.com/danillog/inkFlow"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#F778BA" }}
+          >
+            GitHub
+          </a>
+          .
         </p>
       </Section>
-
     </PageContainer>
   );
 };
