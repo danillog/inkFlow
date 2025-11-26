@@ -1,7 +1,8 @@
-import React from 'react';
-import styled from 'styled-components';
-import { useUIStore, AppColors, type DrawingTool } from '../store/uiStore';
-import { yStrokes, awareness } from '../lib/sync';
+import React from "react";
+import styled from "styled-components";
+import { useUIStore, AppColors, type DrawingTool } from "../store/uiStore";
+import { yStrokes, awareness } from "../lib/sync";
+import { useTranslation } from "react-i18next";
 
 const ToolbarContainer = styled.div`
   position: absolute;
@@ -15,10 +16,12 @@ const ToolbarContainer = styled.div`
   gap: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 100;
+  width: auto;
 `;
 
 const ToolButton = styled.button<{ $isSelected: boolean }>`
-  background-color: ${(props) => (props.$isSelected ? AppColors.primary : 'transparent')};
+  background-color: ${(props) =>
+    props.$isSelected ? AppColors.primary : "transparent"};
   color: ${AppColors.text};
   border: 1px solid transparent;
   width: 40px;
@@ -29,6 +32,7 @@ const ToolButton = styled.button<{ $isSelected: boolean }>`
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
+  font-size: 1.2rem;
 
   &:hover {
     border-color: ${AppColors.text};
@@ -36,51 +40,62 @@ const ToolButton = styled.button<{ $isSelected: boolean }>`
 `;
 
 const Separator = styled.hr`
-    border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    width: 100%;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
 `;
 
 const SymbolInput = styled.input`
-    background-color: ${AppColors.background};
-    color: ${AppColors.text};
-    border: 1px solid ${AppColors.surface};
-    border-radius: 6px;
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    font-size: 1.5rem;
-    padding: 0;
-    box-sizing: border-box;
+  background-color: ${AppColors.background};
+  color: ${AppColors.text};
+  border: 1px solid ${AppColors.surface};
+  border-radius: 6px;
+  width: 100%;
+  height: 40px;
+  text-align: center;
+  font-size: 1rem;
+  padding: 0 8px;
+  box-sizing: border-box;
 
-    &:focus {
-        outline: none;
-        border-color: ${AppColors.primary};
-    }
+  &:focus {
+    outline: none;
+    border-color: ${AppColors.primary};
+  }
 `;
 
-const tools: { name: DrawingTool, icon: string }[] = [
-    { name: 'pen', icon: '✍️' },
-    { name: 'rectangle', icon: '▭' },
-    { name: 'circle', icon: '⭕' },
-    { name: 'triangle', icon: '△' },
-    { name: 'text', icon: 'T' },
-    { name: 'pan', icon: '🖐️' },
-    { name: 'eraser', icon: '🧼' },
+const tools: { name: DrawingTool; icon: string }[] = [
+  { name: "pen", icon: "✍️" },
+  { name: "rectangle", icon: "▭" },
+  { name: "circle", icon: "⭕" },
+  { name: "triangle", icon: "△" },
+  { name: "pan", icon: "🖐️" },
+  { name: "eraser", icon: "🧼" },
 ];
 
 const DrawingToolbar: React.FC = () => {
-  const { drawingTool, setDrawingTool, shapeText, setShapeText } = useUIStore();
-  const isShapeTool = drawingTool === 'rectangle' || drawingTool === 'circle' || drawingTool === 'triangle';
+  const { 
+    drawingTool, 
+    setDrawingTool, 
+    shapeText, 
+    setShapeText,
+    drawingInputMode,
+    toggleDrawingInputMode
+  } = useUIStore();
+  const { t } = useTranslation();
+
+  const isShapeTool =
+    drawingTool === "rectangle" ||
+    drawingTool === "circle" ||
+    drawingTool === "triangle";
 
   const handleUndo = () => {
     if (!awareness) return;
     const strokes = yStrokes.toArray();
     for (let i = strokes.length - 1; i >= 0; i--) {
-        if (strokes[i].clientID === awareness.clientID) {
-            yStrokes.delete(i, 1);
-            return;
-        }
+      if (strokes[i].clientID === awareness.clientID) {
+        yStrokes.delete(i, 1);
+        return;
+      }
     }
   };
 
@@ -98,16 +113,24 @@ const DrawingToolbar: React.FC = () => {
       ))}
       <Separator />
       {isShapeTool && (
-        <SymbolInput 
-            type="text"
-            value={shapeText}
-            onChange={(e) => setShapeText(e.target.value.slice(0, 2))}
-            maxLength={2}
-            placeholder="?"
+        <SymbolInput
+          type="text"
+          value={shapeText}
+          onChange={(e) => setShapeText(e.target.value)}
+          maxLength={100}
+          placeholder="text..."
         />
       )}
       <ToolButton onClick={handleUndo} $isSelected={false} title="Undo">
         ↩️
+      </ToolButton>
+      <Separator />
+      <ToolButton 
+        onClick={toggleDrawingInputMode} 
+        $isSelected={false} 
+        title={drawingInputMode === 'pen' ? t('toolbar.pen_mode') : t('toolbar.touch_mode')}
+      >
+        {drawingInputMode === 'pen' ? '🖊️' : '👆'}
       </ToolButton>
     </ToolbarContainer>
   );

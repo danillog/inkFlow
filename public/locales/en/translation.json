@@ -1,0 +1,61 @@
+{
+  "landing": {
+    "title": "Where Ideas Flow and Work Gets Done",
+    "subtitle": "The Anti-Todo List for Deep Thinkers.",
+    "cta": "Try InkFlow (No Login Required)",
+    "benefits_over_paper": {
+      "title": "Why InkFlow is Better Than Paper",
+      "infinite_space": {
+        "title": "Infinite Space",
+        "text": "Never run out of room for your ideas. Your canvas is limitless."
+      },
+      "collaboration": {
+        "title": "Real-Time Collaboration",
+        "text": "Collaborate in real-time. A peer-to-peer connection that works across most networks, no central server required."
+      },
+      "non_destructive": {
+        "title": "Non-Destructive & Editable",
+        "text": "Erase, move, and scale your ideas without a trace. Perfection is just an edit away."
+      },
+      "integrated_tools": {
+        "title": "All-in-One Toolkit",
+        "text": "Your notes, tasks, and focus timers are all in one, seamless workspace."
+      },
+      "eco_friendly": {
+        "title": "Eco-Friendly",
+        "text": "Save trees and reduce waste. Your digital workspace is your contribution to a greener planet."
+      }
+    },
+    "pain_section": {
+      "title": "The Pain: Analysis Paralysis",
+      "text": "You're a creator. A developer. Your mind generates ideas faster than you can write them down. But traditional tools force you into a vicious cycle: endless lists, daunting backlogs, and the procrastination that comes with overwhelm. Every new idea becomes a debt. The cheap dopamine from social media seems more appealing than facing the mountain of tasks you've created for yourself."
+    },
+    "solution_section": {
+      "title": "The Solution: Black Box ➔ Sniper Mode",
+      "text": "InkFlow breaks this cycle with a two-step method.<br/><br/><strong>1. Black Box:</strong> An infinite canvas to capture everything—code, sketches, ideas—without friction. No judgment. Just flow.<br/><br/><strong>2. Sniper Mode:</strong> Drag ONE task from your pile into full focus mode. A Pomodoro timer protects you, and a context canvas keeps relevant information at hand. Nothing else exists. Just you and your mission."
+    },
+    "engineering_section": {
+      "title": "Engineering Showcase",
+      "intro": "InkFlow was built with performance and privacy as pillars.",
+      "question": "\"Why C++ for drawing on the web?\"",
+      "answer": "To achieve zero latency. The drawing engine is written in C++ and compiled to WebAssembly, ensuring that your digital pen is an extension of your thought, not a hindrance.",
+      "tech_stack": {
+        "engine": "C++ Wasm Engine",
+        "arch": "Local-First Architecture",
+        "frontend": "React & TypeScript",
+        "db": "IndexedDB",
+        "sync": "Y.js (P2P Sync)"
+      },
+      "explore": "Explore the code and architecture on"
+    }
+  },
+  "pomodoro": {
+    "duration_label": "Focus time (minutes)",
+    "start_button": "Start",
+    "reset_button": "Reset"
+  },
+  "toolbar": {
+    "pen_mode": "Pen Only",
+    "touch_mode": "Pen & Touch"
+  }
+}

@@ -17,11 +17,12 @@ const SniperModeContainer = styled.div`
   overflow: hidden;
 `;
 
-const TaskTitle = styled.h1`
+const TaskTitle = styled.h1<{ $isCompleted: boolean }>`
   font-size: 3.2em; /* Large font size as per PRD */
   color: #C9D1D9;
   text-align: center;
   margin-bottom: 2rem;
+  text-decoration: ${props => props.$isCompleted ? 'line-through' : 'none'};
 `;
 
 const ContextCanvasArea = styled.div`
@@ -84,7 +85,10 @@ const SniperModeView: React.FC = () => {
 
   const handleDone = () => {
     updateTask(activeTask.id, { status: 'completed', completedAt: Date.now() });
-    setActiveTask(null); // Exit Sniper Mode
+    // Keep activeTask.id for a short period to show strikethrough
+    setTimeout(() => {
+      setActiveTask(null); // Exit Sniper Mode after a delay
+    }, 1500); // 1.5 seconds delay
   };
 
   const handleAbort = () => {
@@ -93,7 +97,7 @@ const SniperModeView: React.FC = () => {
 
   return (
     <SniperModeContainer>
-      <TaskTitle>{activeTask.content}</TaskTitle>
+      <TaskTitle $isCompleted={activeTask.status === 'completed'}>{activeTask.content}</TaskTitle>
       <PomodoroTimer /> {/* Render PomodoroTimer */}
       <ContextCanvasArea>
         <DrawingCanvas /> {/* Reusing the drawing canvas for context */}
@@ -105,5 +109,6 @@ const SniperModeView: React.FC = () => {
     </SniperModeContainer>
   );
 };
+
 
 export default SniperModeView;

@@ -3,18 +3,19 @@ import Dexie, { type Table } from 'dexie';
 export interface Task {
   id: string;
   content: string;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'aborted'; // Added 'aborted' status
   createdAt: number;
+  completedAt?: number; // Optional timestamp for completion
 }
 
 // --- Discriminated Union for Shapes ---
 
-interface StrokeShape {
+export interface StrokeShape {
   type: 'stroke';
   points: { x: number; y: number; pressure: number }[];
 }
 
-interface RectangleShape {
+export interface RectangleShape {
   type: 'rectangle';
   x: number;
   y: number;
@@ -22,14 +23,14 @@ interface RectangleShape {
   height: number;
 }
 
-interface CircleShape {
+export interface CircleShape {
     type: 'circle';
     cx: number;
     cy: number;
     radius: number;
 }
 
-interface TriangleShape {
+export interface TriangleShape {
     type: 'triangle';
     p1: { x: number; y: number };
     p2: { x: number; y: number };
