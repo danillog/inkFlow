@@ -57,5 +57,38 @@
   "toolbar": {
     "pen_mode": "Pen Only",
     "touch_mode": "Pen & Touch"
+  },
+  "blackbox": {
+    "greeting": "Time to organize your thoughts.",
+    "actions": "Actions",
+    "export": "Export",
+    "import": "Import",
+    "reality_check": "Reality Check",
+    "change_theme": "Change to {{theme}}",
+    "collapse_tasks": "« Collapse Tasks",
+    "expand_tasks": "Expand Tasks »",
+    "status": "Status: {{status}}",
+    "sync_room_placeholder": "Enter a secret room name",
+    "generate": "Generate",
+    "disconnect": "Disconnect",
+    "connect_sync": "Connect Sync",
+    "sync_help": "To sync, other devices must use this same Room Name on the same local network. Anyone with the room name can see the data.",
+    "peer_text_one": "peer",
+    "peer_text_other": "peers",
+    "status_offline": "Offline ⚡",
+    "status_online": "Online ({{syncRoomName}}) - {{peerCount}} {{peerText}}"
+  },
+  "taskstack": {
+    "title": "The Stack",
+    "empty_stack": "Your stack is empty. Add a task!",
+    "focus": "Focus",
+    "remove": "X"
+  },
+  "alerts": {
+    "import_confirm": "Importing data will overwrite all your current data. Are you sure?",
+    "invalid_backup_file": "Invalid backup file format.",
+    "import_success": "Data imported successfully!",
+    "import_fail": "Failed to import data. Check the console for details. The file may be corrupt or in an invalid format.",
+    "sync_room_prompt": "Please enter a name for the sync room."
   }
 }
