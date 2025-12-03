@@ -57,5 +57,38 @@
   "toolbar": {
     "pen_mode": "Apenas Caneta",
     "touch_mode": "Caneta e Toque"
+  },
+  "blackbox": {
+    "greeting": "Hora de organizar seus pensamentos.",
+    "actions": "Ações",
+    "export": "Exportar",
+    "import": "Importar",
+    "reality_check": "Reality Check",
+    "change_theme": "Mudar para {{theme}}",
+    "collapse_tasks": "« Recolher Tasks",
+    "expand_tasks": "Expandir Tasks »",
+    "status": "Status: {{status}}",
+    "sync_room_placeholder": "Digite um nome secreto para a sala",
+    "generate": "Gerar",
+    "disconnect": "Desconectar",
+    "connect_sync": "Conectar Sync",
+    "sync_help": "Para sincronizar, outros dispositivos devem usar este mesmo Nome de Sala na mesma rede local. Qualquer pessoa com o nome da sala pode ver os dados.",
+    "peer_text_one": "participante",
+    "peer_text_other": "participantes",
+    "status_offline": "Offline ⚡",
+    "status_online": "Online ({{syncRoomName}}) - {{peerCount}} {{peerText}}"
+  },
+  "taskstack": {
+    "title": "A Pilha",
+    "empty_stack": "Sua pilha está vazia. Adicione uma tarefa!",
+    "focus": "Focar",
+    "remove": "X"
+  },
+  "alerts": {
+    "import_confirm": "Importar dados substituirá todos os seus dados atuais. Você tem certeza?",
+    "invalid_backup_file": "Formato de arquivo de backup inválido.",
+    "import_success": "Dados importados com sucesso!",
+    "import_fail": "Falha ao importar dados. Verifique o console para detalhes. O arquivo pode estar corrompido ou em formato inválido.",
+    "sync_room_prompt": "Por favor, insira um nome para a sala de sincronização."
   }
 }

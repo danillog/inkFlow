@@ -1,22 +1,30 @@
 import React, { useRef, useState, useEffect } from "react";
-import styled from "styled-components";
+import styled, { ThemeProvider } from "styled-components";
 import DrawingCanvas from "../components/DrawingCanvas";
 import TaskStack from "../components/TaskStack";
 import QuickCapture from "../components/QuickCapture";
-import ColorPalette from "../components/ColorPalette";
 import DrawingToolbar from "../components/DrawingToolbar";
 import { db, type Task, type DrawingStroke } from "../lib/db";
 import { useTaskStore } from "../store/taskStore";
+import { useUIStore } from "../store/uiStore";
+import type { lightTheme } from "../store/uiStore";
+
+declare module "styled-components" {
+  export interface DefaultTheme extends Readonly<typeof lightTheme> {}
+}
+import { useTranslation } from "react-i18next";
 import { useSyncStore } from "../lib/sync";
 import { connectYjs, disconnectYjs, getCurrentRoomName } from "../lib/sync";
 
 const BlackBoxContainer = styled.div`
   display: flex;
-  flex-direction: column; /* Changed to vertical layout */
+  flex-direction: column;
   width: 100%;
   height: 100%;
   position: relative;
   overflow: hidden;
+  background-color: ${({ theme }) => theme.background};
+  color: ${({ theme }) => theme.text};
 `;
 
 const MainContent = styled.div`
@@ -24,7 +32,7 @@ const MainContent = styled.div`
   flex-grow: 1;
   width: 100%;
   position: relative;
-  overflow: hidden; /* Prevent child components from overflowing */
+  overflow: hidden;
 
   @media (max-width: 1024px) {
     flex-direction: column;
@@ -38,17 +46,16 @@ const CanvasArea = styled.div`
 `;
 
 const Header = styled.header`
-  /* position: absolute; <- Removed */
   width: 100%;
   padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #161b22; /* Added a background to define the header area */
-  color: #c9d1d9;
+  background-color: ${({ theme }) => theme.surface};
+  color: ${({ theme }) => theme.text};
   font-family: "Inter", sans-serif;
   z-index: 101;
-  box-sizing: border-box; /* Ensure padding is included in width */
+  box-sizing: border-box;
 
   h1 {
     font-size: 1.5rem;
@@ -83,6 +90,8 @@ const ControlsContainer = styled.div`
 const ActionButtonsWrapper = styled.div`
   display: flex;
   gap: 0.5rem;
+  position: relative;
+  flex-direction: row-reverse;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -107,8 +116,8 @@ const SyncInput = styled.input`
   padding: 0.4rem 0.8rem;
   border-radius: 5px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background-color: #0d1117;
-  color: #c9d1d9;
+  background-color: ${({ theme }) => theme.background};
+  color: ${({ theme }) => theme.text};
   font-size: 0.9rem;
   outline: none;
   width: 120px;
@@ -118,13 +127,14 @@ const SyncInput = styled.input`
   }
 
   @media (max-width: 768px) {
-    width: auto; /* Allow it to fill the container */
+    width: auto;
   }
 `;
 
 const ControlButton = styled.button<{ $isActive?: boolean }>`
-  background-color: ${(props) => (props.$isActive ? "#238636" : "#161B22")};
-  color: #c9d1d9;
+  background-color: ${(props) =>
+    props.$isActive ? "#238636" : props.theme.surface};
+  color: ${({ theme }) => theme.text};
   border: 1px solid
     ${(props) => (props.$isActive ? "#238636" : "rgba(255, 255, 255, 0.2)")};
   padding: 0.5rem 1rem;
@@ -151,7 +161,7 @@ const RealityCheckButton = styled(ControlButton)`
 
 const HelpIcon = styled.span`
   display: inline-block;
-  border: 1px solid #c9d1d9;
+  border: 1px solid ${({ theme }) => theme.text};
   border-radius: 50%;
   width: 16px;
   height: 16px;
@@ -163,14 +173,47 @@ const HelpIcon = styled.span`
   margin-left: 8px;
 `;
 
+const MenuButton = styled(ControlButton)`
+  background-color: #30363d;
+  color: #c9d1d9;
+  border-color: rgba(255, 255, 255, 0.2);
+`;
+
+const MenuContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: ${({ theme }) => theme.surface};
+  padding: 0.5rem;
+  border-radius: 5px;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+`;
+
 const BlackBoxView: React.FC = () => {
-  const greeting = "Time to organize your thoughts.";
+  const { colors } = useUIStore();
+  return (
+    <ThemeProvider theme={colors}>
+      <BlackBoxViewContent />
+    </ThemeProvider>
+  );
+};
+const BlackBoxViewContent: React.FC = () => {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [syncRoomName, setSyncRoomName] = useState("");
   const [isConnected, setIsConnected] = useState(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const taskStoreRehydrate = useTaskStore.persist.rehydrate;
   const setCurrentView = useTaskStore((state) => state.setCurrentView);
   const peerCount = useSyncStore((state) => state.peerCount);
+  const { theme, toggleTheme, isTaskStackOpen, toggleTaskStack } = useUIStore();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (getCurrentRoomName()) {
@@ -207,7 +250,7 @@ const BlackBoxView: React.FC = () => {
       console.log("Data exported successfully!");
     } catch (error) {
       console.error("Failed to export data:", error);
-      alert("Falha ao exportar dados. Verifique o console para detalhes.");
+      alert(t("alerts.import_fail"));
     }
   };
 
@@ -221,11 +264,7 @@ const BlackBoxView: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (
-      !confirm(
-        "Importar dados substituirá todos os seus dados atuais. Você tem certeza?"
-      )
-    ) {
+    if (!confirm(t("alerts.import_confirm"))) {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -241,7 +280,7 @@ const BlackBoxView: React.FC = () => {
         !Array.isArray(importedData.tasks) ||
         !Array.isArray(importedData.drawingStrokes)
       ) {
-        throw new Error("Formato de arquivo de backup inválido.");
+        throw new Error(t("alerts.invalid_backup_file"));
       }
 
       await db.tasks.clear();
@@ -253,15 +292,13 @@ const BlackBoxView: React.FC = () => {
       );
 
       taskStoreRehydrate();
-      useTaskStore.getState().refreshCanvas(); // Trigger canvas refresh
+      useTaskStore.getState().refreshCanvas();
 
-      alert("Dados importados com sucesso!");
+      alert(t("alerts.import_success"));
       console.log("Data imported successfully!");
     } catch (error) {
       console.error("Failed to import data:", error);
-      alert(
-        "Falha ao importar dados. Verifique o console para detalhes. O arquivo pode estar corrompido ou em formato inválido."
-      );
+      alert(t("alerts.import_fail"));
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -279,7 +316,7 @@ const BlackBoxView: React.FC = () => {
         connectYjs(syncRoomName.trim());
         setIsConnected(true);
       } else {
-        alert("Por favor, insira um nome para a sala de sincronização.");
+        alert(t("alerts.sync_room_prompt"));
       }
     }
   };
@@ -293,19 +330,32 @@ const BlackBoxView: React.FC = () => {
   };
 
   const getStatusText = () => {
-    if (!isConnected) return "Offline ⚡";
-    const peerText = peerCount <= 1 ? "peer" : "peers";
-    return `Online (${syncRoomName}) - ${peerCount} ${peerText}`;
+    if (!isConnected) return t("blackbox.status_offline");
+    const peerText = t(
+      peerCount <= 1 ? "blackbox.peer_text_one" : "blackbox.peer_text_other"
+    );
+    return t("blackbox.status_online", { syncRoomName, peerCount, peerText });
   };
 
   return (
     <BlackBoxContainer>
       <Header>
-        <h1>{greeting}</h1>
+        <h1>{t("blackbox.greeting")}</h1>
         <ControlsContainer>
           <ActionButtonsWrapper>
-            <BackupButton onClick={handleExportData}>Exportar</BackupButton>
-            <BackupButton onClick={handleImportClick}>Importar</BackupButton>
+            <MenuButton onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}>
+              {t("blackbox.actions")}
+            </MenuButton>
+            {isActionMenuOpen && (
+              <MenuContainer>
+                <BackupButton onClick={handleExportData}>
+                  {t("blackbox.export")}
+                </BackupButton>
+                <BackupButton onClick={handleImportClick}>
+                  {t("blackbox.import")}
+                </BackupButton>
+              </MenuContainer>
+            )}
             <input
               type="file"
               ref={fileInputRef}
@@ -314,31 +364,40 @@ const BlackBoxView: React.FC = () => {
               accept="application/json"
             />
             <RealityCheckButton onClick={() => setCurrentView("realitycheck")}>
-              Reality Check
+              {t("blackbox.reality_check")}
             </RealityCheckButton>
+            <ControlButton onClick={toggleTheme}>
+              {t("blackbox.change_theme", {
+                theme: theme === "dark" ? "Light" : "Dark",
+              })}
+            </ControlButton>
           </ActionButtonsWrapper>
+          <ControlButton
+            onClick={toggleTaskStack}
+            style={{ alignSelf: "flex-end", marginTop: "0.5rem" }}
+          >
+            {isTaskStackOpen
+              ? t("blackbox.collapse_tasks")
+              : t("blackbox.expand_tasks")}
+          </ControlButton>
           <SyncControls>
-            <span>Status: {getStatusText()}</span>
+            <span>{t("blackbox.status", { status: getStatusText() })}</span>
             <SyncInput
               type="text"
-              placeholder="Digite um nome secreto para a sala"
+              placeholder={t("blackbox.sync_room_placeholder")}
               value={syncRoomName}
               onChange={(e) => setSyncRoomName(e.target.value)}
               disabled={isConnected}
             />
             <ControlButton onClick={generateRoomName} disabled={isConnected}>
-              Gerar
+              {t("blackbox.generate")}
             </ControlButton>
             <ControlButton onClick={handleToggleSync} $isActive={isConnected}>
-              {isConnected ? "Desconectar" : "Conectar Sync"}
+              {isConnected
+                ? t("blackbox.disconnect")
+                : t("blackbox.connect_sync")}
             </ControlButton>
-            <HelpIcon
-              onClick={() =>
-                alert(
-                  "Para sincronizar, outros dispositivos devem usar este mesmo Nome de Sala na mesma rede local. Qualquer pessoa com o nome da sala pode ver os dados."
-                )
-              }
-            >
+            <HelpIcon onClick={() => alert(t("blackbox.sync_help"))}>
               ?
             </HelpIcon>
           </SyncControls>
@@ -348,9 +407,8 @@ const BlackBoxView: React.FC = () => {
         <CanvasArea>
           <DrawingCanvas />
         </CanvasArea>
-        <TaskStack />
+        {isTaskStackOpen && <TaskStack />}
         <QuickCapture />
-        <ColorPalette />
         <DrawingToolbar />
       </MainContent>
     </BlackBoxContainer>

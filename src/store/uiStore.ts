@@ -3,7 +3,7 @@ import { create } from 'zustand';
 export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'pan' | 'eraser' | 'triangle';
 export type DrawingInputMode = 'pen' | 'touch';
 
-export const AppColors = {
+export const darkTheme = {
   text: '#C9D1D9',
   background: '#0D1117',
   surface: '#161B22',
@@ -12,10 +12,21 @@ export const AppColors = {
   secondaryAccent: '#BB86FC'
 };
 
+export const lightTheme = {
+  text: '#24292E',
+  background: '#FFFFFF',
+  surface: '#F6F8FA',
+  primary: '#22863A',
+  accent: '#EA4AAA',
+  secondaryAccent: '#A75EFF'
+};
+
 interface PanOffset {
   x: number;
   y: number;
 }
+
+type Theme = 'dark' | 'light';
 
 interface UIStore {
   selectedColor: string;
@@ -24,25 +35,38 @@ interface UIStore {
   panOffset: PanOffset;
   zoom: number;
   shapeText: string;
+  theme: Theme;
+  colors: typeof darkTheme;
+  isTaskStackOpen: boolean;
   setSelectedColor: (color: string) => void;
   setDrawingTool: (tool: DrawingTool) => void;
   toggleDrawingInputMode: () => void;
   setPanOffset: (offset: PanOffset) => void;
   setZoom: (zoom: number) => void;
   setShapeText: (text: string) => void;
+  toggleTheme: () => void;
+  toggleTaskStack: () => void;
 }
 
-export const useUIStore = create<UIStore>((set) => ({
-  selectedColor: AppColors.text,
+export const useUIStore = create<UIStore>((set, get) => ({
+  selectedColor: darkTheme.text,
   drawingTool: 'pen',
   drawingInputMode: 'pen',
   panOffset: { x: 0, y: 0 },
   zoom: 1,
   shapeText: '',
+  theme: 'dark',
+  colors: darkTheme,
+  isTaskStackOpen: true,
   setSelectedColor: (color) => set({ selectedColor: color }),
   setDrawingTool: (tool) => set({ drawingTool: tool }),
   toggleDrawingInputMode: () => set((state) => ({ drawingInputMode: state.drawingInputMode === 'pen' ? 'touch' : 'pen' })),
   setPanOffset: (offset) => set({ panOffset: offset }),
   setZoom: (zoom) => set({ zoom }),
   setShapeText: (text) => set({ shapeText: text }),
+  toggleTheme: () => {
+    const newTheme = get().theme === 'dark' ? 'light' : 'dark';
+    set({ theme: newTheme, colors: newTheme === 'dark' ? darkTheme : lightTheme });
+  },
+  toggleTaskStack: () => set((state) => ({ isTaskStackOpen: !state.isTaskStackOpen })),
 }));

@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { useInkEngine } from "../hooks/useInkEngine";
 import { db, type DrawingStroke } from "../lib/db";
 import { useTaskStore } from "../store/taskStore";
-import { useUIStore, AppColors, type DrawingTool } from "../store/uiStore";
+import { useUIStore, type DrawingTool } from "../store/uiStore";
 import { yStrokes, awareness } from "../lib/sync";
 import type { StrokeShape } from "../lib/db"; // Import shape interfaces as type-only
 
@@ -62,6 +62,7 @@ const DrawingCanvas: React.FC = () => {
     setPanOffset,
     setZoom,
     shapeText,
+    colors,
   } = useUIStore();
 
   const existingStrokes = useRef<DrawingStroke[]>([]);
@@ -117,8 +118,8 @@ const DrawingCanvas: React.FC = () => {
 
   const drawShape = useCallback(
     (ctx: CanvasRenderingContext2D, shape: DrawingStroke) => {
-      ctx.strokeStyle = shape.color || AppColors.text;
-      ctx.fillStyle = shape.color || AppColors.text;
+      ctx.strokeStyle = shape.color || colors.text;
+      ctx.fillStyle = shape.color || colors.text;
       ctx.lineWidth = 2 / zoom;
 
       switch (shape.type) {
@@ -277,7 +278,7 @@ const DrawingCanvas: React.FC = () => {
           0,
           Math.PI * 2
         );
-        bufferCtx.strokeStyle = AppColors.accent;
+        bufferCtx.strokeStyle = colors.accent;
         bufferCtx.lineWidth = 1 / zoom;
         bufferCtx.stroke();
       }
@@ -353,10 +354,12 @@ const DrawingCanvas: React.FC = () => {
   // Refs for gesture management
   const activePointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStartDistance = useRef(0);
+  const pinchStartZoom = useRef(1);
   const gestureState = useRef<"drawing" | "panning" | "pinching" | null>(null);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
       if (!isLoaded) return;
       (e.target as HTMLDivElement).setPointerCapture(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -368,6 +371,7 @@ const DrawingCanvas: React.FC = () => {
         const dx = pointers[0].x - pointers[1].x;
         const dy = pointers[0].y - pointers[1].y;
         pinchStartDistance.current = Math.sqrt(dx * dx + dy * dy);
+        pinchStartZoom.current = zoom;
         // Stop any drawing that might have started
         setIsDrawing(false);
         localStroke.current = {};
@@ -457,11 +461,13 @@ const DrawingCanvas: React.FC = () => {
       eraseAtPoint,
       selectedColor,
       awareness,
+      zoom,
     ]
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
       if (!activePointers.current.has(e.pointerId)) return;
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -482,7 +488,10 @@ const DrawingCanvas: React.FC = () => {
         };
         const worldPos = getScreenToWorldCoordinates(midPoint.x, midPoint.y);
 
-        const newZoom = Math.max(0.1, Math.min(zoom * scale, 20));
+        const newZoom = Math.max(
+          0.1,
+          Math.min(pinchStartZoom.current * scale, 20)
+        );
 
         const newPanX = midPoint.x - worldPos.x * newZoom;
         const newPanY = midPoint.y - worldPos.y * newZoom;
@@ -490,12 +499,15 @@ const DrawingCanvas: React.FC = () => {
         setZoom(newZoom);
         setPanOffset({ x: newPanX, y: newPanY });
 
-        pinchStartDistance.current = newDist;
         return; // Don't do other things while pinching
       }
 
       // Panning logic for a single pointer
-      if (gestureState.current === "panning" && isDrawing) {
+      if (
+        gestureState.current === "panning" &&
+        isDrawing &&
+        activePointers.current.size === 1
+      ) {
         setPanOffset({
           x: panOffset.x + e.movementX,
           y: panOffset.y + e.movementY,
