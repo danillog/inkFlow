@@ -9,7 +9,7 @@ interface TaskStore {
   activeTaskId: string | null;
   currentView: ViewMode;
   canvasRevision: number; // Add revision number
-  addTask: (content: string) => void;
+  addTask: (content: string, category: 'personal' | 'work') => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   removeTask: (id: string) => void;
   setActiveTask: (id: string | null) => void;
@@ -52,8 +52,8 @@ export const useTaskStore = create<TaskStore>()(
       activeTaskId: null,
       currentView: 'blackbox',
       canvasRevision: 0,
-      addTask: (content) => set((state) => {
-        const newTask: Task = { id: Date.now().toString(), content, status: 'pending', createdAt: Date.now() };
+      addTask: (content, category) => set((state) => {
+        const newTask: Task = { id: Date.now().toString(), content, status: 'pending', createdAt: Date.now(), category };
         return { tasks: [...state.tasks, newTask] };
       }),
       updateTask: (id, updates) => set((state) => ({

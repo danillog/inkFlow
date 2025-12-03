@@ -11,9 +11,11 @@ const QuickCaptureContainer = styled.div`
   background-color: #161B22; /* Surface color from Design System */
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 100;
+  gap: 0.5rem;
 `;
 
 const QuickCaptureInput = styled.input`
@@ -37,26 +39,62 @@ const QuickCaptureInput = styled.input`
   }
 `;
 
+const CategorySelector = styled.div`
+  display: flex;
+  gap: 1rem;
+  color: #C9D1D9;
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+`;
+
 const QuickCapture: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
+  const [category, setCategory] = useState<'personal' | 'work'>('personal'); // Corrected type
   const addTask = useTaskStore((state) => state.addTask);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim()) {
-      addTask(inputValue.trim());
+      addTask(inputValue.trim(), category);
       setInputValue('');
     }
-  }, [inputValue, addTask]);
+  }, [inputValue, category, addTask]);
 
   return (
     <QuickCaptureContainer>
       <QuickCaptureInput
         type="text"
-        placeholder="Adicione uma tarefa rápida e pressione Enter..."
+        placeholder="Add a quick task and press Enter..."
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyPress={handleKeyPress}
       />
+      <CategorySelector>
+        <RadioLabel>
+          <input
+            type="radio"
+            name="category"
+            value="personal"
+            checked={category === 'personal'}
+            onChange={() => setCategory('personal')}
+          />
+          Personal
+        </RadioLabel>
+        <RadioLabel>
+          <input
+            type="radio"
+            name="category"
+            value="work"
+            checked={category === 'work'}
+            onChange={() => setCategory('work')}
+          />
+          Work
+        </RadioLabel>
+      </CategorySelector>
     </QuickCaptureContainer>
   );
 };

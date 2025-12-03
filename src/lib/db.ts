@@ -6,6 +6,7 @@ export interface Task {
   status: 'pending' | 'completed' | 'aborted'; // Added 'aborted' status
   createdAt: number;
   completedAt?: number; // Optional timestamp for completion
+  category?: 'personal' | 'work';
 }
 
 // --- Discriminated Union for Shapes ---
@@ -54,8 +55,8 @@ export class InkFlowDB extends Dexie {
 
   constructor() {
     super('inkFlowDB');
-    this.version(2).stores({
-      tasks: '++id, content, status, createdAt',
+    this.version(3).stores({
+      tasks: '++id, content, status, createdAt, category',
       drawingStrokes: '++id, taskId, createdAt',
     });
   }

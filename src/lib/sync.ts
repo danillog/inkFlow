@@ -2,9 +2,11 @@ import * as Y from "yjs";
 import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { useTaskStore } from "../store/taskStore";
+import { useUIStore } from "../store/uiStore";
 import { type Task, type DrawingStroke } from "./db";
 import { Awareness } from "y-protocols/awareness";
 import { create } from "zustand";
+import type { Transaction, YMapEvent } from "yjs";
 
 // --- A new simple store for tracking sync/peer status ---
 interface SyncState {
@@ -22,11 +24,12 @@ new IndexeddbPersistence("inkflow-yjs-persistence", ydoc);
 
 let webrtcProvider: WebrtcProvider | null = null;
 let currentRoomName: string | null = null;
-let unsubFromStore: (() => void) | null = null; // Variable to hold the unsubscribe function
+const unsubscribers: (() => void)[] = [];
 
 // --- Yjs Shared Types ---
 export const yTasks = ydoc.getMap<Task>("tasks");
 export const yStrokes = ydoc.getArray<DrawingStroke>("drawingStrokes");
+export const yUiState = ydoc.getMap<any>("uiState");
 
 export const getYjsDoc = () => ydoc;
 export let awareness: Awareness | null = null;
@@ -73,8 +76,18 @@ export const connectYjs = (roomName: string) => {
     useTaskStore.setState({ tasks: tasksFromYjs });
   });
 
-  // Store the unsubscribe function to be called on disconnect
-  unsubFromStore = useTaskStore.subscribe((state) => {
+  let isSyncing = false;
+
+  // --- UI State Syncing Logic ---
+  yUiState.observe((_event: YMapEvent<any>, transaction: Transaction) => {
+    if (transaction.local) return;
+    isSyncing = true;
+    const uiStateFromYjs = Object.fromEntries(yUiState.entries());
+    useUIStore.setState(uiStateFromYjs);
+    isSyncing = false;
+  });
+
+  const unsubFromTaskStore = useTaskStore.subscribe((state) => {
     const tasks = state.tasks;
     ydoc.transact(() => {
       const currentYjsTaskIds = new Set(yTasks.keys());
@@ -88,6 +101,18 @@ export const connectYjs = (roomName: string) => {
       currentYjsTaskIds.forEach((id) => yTasks.delete(id));
     });
   });
+  unsubscribers.push(unsubFromTaskStore);
+
+  const unsubFromUiStore = useUIStore.subscribe((state) => {
+    if (isSyncing) return;
+    ydoc.transact(() => {
+      yUiState.set("pomodoroDuration", state.pomodoroDuration);
+      yUiState.set("pomodoroMinutes", state.pomodoroMinutes);
+      yUiState.set("pomodoroSeconds", state.pomodoroSeconds);
+      yUiState.set("isPomodoroActive", state.isPomodoroActive);
+    });
+  });
+  unsubscribers.push(unsubFromUiStore);
 };
 
 // Function to disconnect
@@ -99,11 +124,9 @@ export const disconnectYjs = () => {
     useSyncStore.getState().setPeerCount(0);
     console.log("Disconnected from WebRTC provider.");
   }
-  // Unsubscribe from the store when disconnecting
-  if (unsubFromStore) {
-    unsubFromStore();
-    unsubFromStore = null;
-  }
+  // Unsubscribe from all stores when disconnecting
+  unsubscribers.forEach((unsub) => unsub());
+  unsubscribers.length = 0;
 };
 
 export const getCurrentRoomName = () => currentRoomName;

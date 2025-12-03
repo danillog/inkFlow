@@ -38,6 +38,11 @@ interface UIStore {
   theme: Theme;
   colors: typeof darkTheme;
   isTaskStackOpen: boolean;
+  pomodoroDuration: number;
+  pomodoroMinutes: number;
+  pomodoroSeconds: number;
+  isPomodoroActive: boolean;
+  isPomodoroFloating: boolean;
   setSelectedColor: (color: string) => void;
   setDrawingTool: (tool: DrawingTool) => void;
   toggleDrawingInputMode: () => void;
@@ -46,6 +51,10 @@ interface UIStore {
   setShapeText: (text: string) => void;
   toggleTheme: () => void;
   toggleTaskStack: () => void;
+  setPomodoroDuration: (duration: number) => void;
+  setPomodoroTime: (minutes: number, seconds: number) => void;
+  setIsPomodoroActive: (isActive: boolean) => void;
+  togglePomodoroFloating: () => void;
 }
 
 export const useUIStore = create<UIStore>((set, get) => ({
@@ -58,6 +67,11 @@ export const useUIStore = create<UIStore>((set, get) => ({
   theme: 'dark',
   colors: darkTheme,
   isTaskStackOpen: true,
+  pomodoroDuration: 25,
+  pomodoroMinutes: 25,
+  pomodoroSeconds: 0,
+  isPomodoroActive: false,
+  isPomodoroFloating: false,
   setSelectedColor: (color) => set({ selectedColor: color }),
   setDrawingTool: (tool) => set({ drawingTool: tool }),
   toggleDrawingInputMode: () => set((state) => ({ drawingInputMode: state.drawingInputMode === 'pen' ? 'touch' : 'pen' })),
@@ -69,4 +83,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
     set({ theme: newTheme, colors: newTheme === 'dark' ? darkTheme : lightTheme });
   },
   toggleTaskStack: () => set((state) => ({ isTaskStackOpen: !state.isTaskStackOpen })),
+  setPomodoroDuration: (duration) => set({ pomodoroDuration: duration, pomodoroMinutes: duration, pomodoroSeconds: 0 }),
+  setPomodoroTime: (minutes, seconds) => set({ pomodoroMinutes: minutes, pomodoroSeconds: seconds }),
+  setIsPomodoroActive: (isActive) => set({ isPomodoroActive: isActive }),
+  togglePomodoroFloating: () => set((state) => ({ isPomodoroFloating: !state.isPomodoroFloating })),
 }));

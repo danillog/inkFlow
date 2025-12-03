@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { useTaskStore } from "../store/taskStore";
 import { useUIStore } from "../store/uiStore";
+import type { Task } from "../lib/db";
 
 const TaskStackContainer = styled.div<{ width: number }>`
   width: ${(props) => props.width}px;
@@ -120,6 +121,15 @@ const FocusButton = styled.button`
   }
 `;
 
+const CategoryIndicator = styled.div<{ category?: Task['category'] }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  background-color: ${({ category }) =>
+    category === 'work' ? '#238636' : '#388bfd'};
+`;
+
 const TaskStack: React.FC = () => {
   const { t } = useTranslation();
   const tasks = useTaskStore((state) => state.tasks);
@@ -178,6 +188,7 @@ const TaskStack: React.FC = () => {
       ) : (
         sortedTasks.map((task) => (
           <TaskCard key={task.id} draggable theme={colors}>
+            <CategoryIndicator category={task.category} />
             <TaskContent $isCompleted={task.status === "completed"} theme={colors}>
               {task.content}
             </TaskContent>
