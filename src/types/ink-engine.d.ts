@@ -1,4 +1,4 @@
-// src/types/ink-engine.d.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // This declares the global function that Emscripten's MODULARIZE option makes available
 // and the shape of the module object itself.
 

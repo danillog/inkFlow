@@ -3,13 +3,11 @@ import Dexie, { type Table } from 'dexie';
 export interface Task {
   id: string;
   content: string;
-  status: 'pending' | 'completed' | 'aborted'; // Added 'aborted' status
+  status: 'pending' | 'completed' | 'aborted';
   createdAt: number;
-  completedAt?: number; // Optional timestamp for completion
+  completedAt?: number;
   category?: 'personal' | 'work';
 }
-
-// --- Discriminated Union for Shapes ---
 
 export interface StrokeShape {
   type: 'stroke';
@@ -38,14 +36,13 @@ export interface TriangleShape {
     p3: { x: number; y: number };
 }
 
-// The main DrawingStroke type is a union of all possible shapes
 export type DrawingStroke = {
   id: string;
   taskId?: string;
   createdAt: number;
   color?: string;
   clientID?: number;
-  text?: string; // For emoji/symbol inside shape
+  text?: string;
 } & (StrokeShape | RectangleShape | CircleShape | TriangleShape);
 
 

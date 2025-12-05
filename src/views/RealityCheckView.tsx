@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
-import { useTaskStore } from '../store/taskStore'; // Changed import
-import { type Task, db } from '../lib/db'; // Import Task and db from db.ts
+import { useTaskStore } from '../store/taskStore';
+import { db } from '../lib/db';
 
 const RealityCheckContainer = styled.div`
   display: flex;
@@ -10,7 +10,7 @@ const RealityCheckContainer = styled.div`
   justify-content: center;
   width: 100vw;
   height: 100vh;
-  background-color: #0D1117; /* Background color from Design System */
+  background-color: #0D1117;
   color: #C9D1D9;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
@@ -21,6 +21,11 @@ const Title = styled.h1`
   font-size: 2.5rem;
   margin-bottom: 2rem;
   color: #C9D1D9;
+
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+    text-align: center;
+  }
 `;
 
 const StatsContainer = styled.div`
@@ -29,6 +34,11 @@ const StatsContainer = styled.div`
   margin-bottom: 3rem;
   font-size: 1.2rem;
   text-align: center;
+
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+    flex-direction: column;
+  }
 `;
 
 const StatItem = styled.div`
@@ -39,7 +49,7 @@ const StatItem = styled.div`
   span {
     font-size: 2rem;
     font-weight: bold;
-    color: #238636; /* Primary color */
+    color: #238636;
   }
 `;
 
@@ -51,9 +61,13 @@ const CompletedTasksList = styled.ul`
   overflow-y: auto;
   width: 80%;
   max-width: 600px;
-  background-color: #161B22; /* Surface color */
+  background-color: #161B22;
   border-radius: 8px;
   padding: 1rem;
+
+  @media (max-width: 768px) {
+    width: 90%;
+  }
 `;
 
 const CompletedTaskItem = styled.li`
@@ -82,7 +96,7 @@ const CompletedTaskItem = styled.li`
 `;
 
 const ResetButton = styled.button`
-  background-color: #F778BA; /* Accent color */
+  background-color: #F778BA;
   color: #0D1117;
   border: none;
   padding: 1rem 2rem;
@@ -100,28 +114,27 @@ const RealityCheckView: React.FC = () => {
   const tasks = useTaskStore((state) => state.tasks);
   const setCurrentView = useTaskStore((state) => state.setCurrentView);
 
-  const [completedToday, setCompletedToday] = useState<Task[]>([]);
-  const [totalFocusTime, setTotalFocusTime] = useState<number>(0);
+  const startOfToday = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
 
-  useEffect(() => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const tasksCompletedToday = tasks.filter(
+  const tasksCompletedToday = useMemo(() => {
+    return tasks.filter(
       (task) => task.status === 'completed' && task.completedAt && task.completedAt >= startOfToday.getTime()
     );
-    setCompletedToday(tasksCompletedToday);
+  }, [tasks, startOfToday]);
 
-    setTotalFocusTime(tasksCompletedToday.length * 25);
-  }, [tasks]);
+  const totalFocusTime = useMemo(() => {
+    return tasksCompletedToday.length * 25;
+  }, [tasksCompletedToday]);
 
-  const handleEndDay = async () => { // Make it async
+  const handleEndDay = async () => {
     if (confirm('Encerrar o dia removerá todas as tarefas, desenhos e notas. Deseja continuar?')) {
-      await db.tasks.clear(); // Clear all tasks
-      await db.drawingStrokes.clear(); // Clear all drawing strokes
-      // Add other database clear calls if more tables are added in the future
+      await db.tasks.clear();
+      await db.drawingStrokes.clear();
       
-      // Explicitly update Zustand store and refresh canvas
       useTaskStore.setState({ tasks: [], activeTaskId: null });
       useTaskStore.getState().refreshCanvas();
       
@@ -141,7 +154,7 @@ const RealityCheckView: React.FC = () => {
 
       <StatsContainer>
         <StatItem>
-          <span>{completedToday.length}</span>
+          <span>{tasksCompletedToday.length}</span>
           <span>Tarefas Finalizadas</span>
         </StatItem>
         <StatItem>
@@ -150,11 +163,11 @@ const RealityCheckView: React.FC = () => {
         </StatItem>
       </StatsContainer>
 
-      {completedToday.length > 0 ? (
+      {tasksCompletedToday.length > 0 ? (
         <>
           <h2>Tarefas Concluídas Hoje:</h2>
           <CompletedTasksList>
-            {completedToday.map((task) => (
+            {tasksCompletedToday.map((task) => (
               <CompletedTaskItem key={task.id}>
                 <span>{task.content}</span>
                 <span>{task.completedAt ? new Date(task.completedAt).toLocaleTimeString() : ''}</span>

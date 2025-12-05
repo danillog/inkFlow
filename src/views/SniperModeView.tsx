@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useTaskStore } from '../store/taskStore';
-import DrawingCanvas from '../components/DrawingCanvas'; // Reuse DrawingCanvas
-import PomodoroTimer from '../components/PomodoroTimer'; // Import PomodoroTimer
+import DrawingCanvas from '../components/DrawingCanvas';
+import PomodoroTimer from '../components/PomodoroTimer';
 
 const SniperModeContainer = styled.div`
   display: flex;
@@ -11,28 +11,36 @@ const SniperModeContainer = styled.div`
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background-color: #0D1117; /* Background color from Design System */
+  background-color: #0D1117;
   color: #C9D1D9;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 `;
 
 const TaskTitle = styled.h1<{ $isCompleted: boolean }>`
-  font-size: 3.2em; /* Large font size as per PRD */
+  font-size: 3.2em;
   color: #C9D1D9;
   text-align: center;
   margin-bottom: 2rem;
   text-decoration: ${props => props.$isCompleted ? 'line-through' : 'none'};
+
+  @media (max-width: 768px) {
+    font-size: 2em;
+  }
 `;
 
 const ContextCanvasArea = styled.div`
-  width: 80%; /* Adjust size as needed */
-  height: 40vh; /* Adjust size as needed */
+  width: 80%;
+  height: 40vh;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   overflow: hidden;
   position: relative;
-  background-color: #0D1117; /* Background of canvas itself */
+  background-color: #0D1117;
+
+  @media (max-width: 768px) {
+    width: 90%;
+  }
 `;
 
 const ActionButtonsContainer = styled.div`
@@ -40,10 +48,16 @@ const ActionButtonsContainer = styled.div`
   bottom: 2rem;
   display: flex;
   gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 90%;
+    align-items: stretch;
+  }
 `;
 
 const DoneButton = styled.button`
-  background-color: #238636; /* Primary color */
+  background-color: #238636;
   color: #C9D1D9;
   border: none;
   padding: 0.8rem 1.5rem;
@@ -58,7 +72,7 @@ const DoneButton = styled.button`
 
 const AbortButton = styled.button`
   background: none;
-  border: 1px solid rgba(201, 209, 217, 0.5); /* Ghost button style */
+  border: 1px solid rgba(201, 209, 217, 0.5);
   color: #C9D1D9;
   padding: 0.8rem 1.5rem;
   border-radius: 8px;
@@ -79,28 +93,26 @@ const SniperModeView: React.FC = () => {
   const activeTask = tasks.find((task) => task.id === activeTaskId);
 
   if (!activeTask) {
-    // Should not happen if App.tsx handles conditional rendering correctly
     return <p>No active task selected.</p>;
   }
 
   const handleDone = () => {
     updateTask(activeTask.id, { status: 'completed', completedAt: Date.now() });
-    // Keep activeTask.id for a short period to show strikethrough
     setTimeout(() => {
-      setActiveTask(null); // Exit Sniper Mode after a delay
-    }, 1500); // 1.5 seconds delay
+      setActiveTask(null);
+    }, 1500);
   };
 
   const handleAbort = () => {
-    setActiveTask(null); // Exit Sniper Mode
+    setActiveTask(null);
   };
 
   return (
     <SniperModeContainer>
       <TaskTitle $isCompleted={activeTask.status === 'completed'}>{activeTask.content}</TaskTitle>
-      <PomodoroTimer /> {/* Render PomodoroTimer */}
+      <PomodoroTimer />
       <ContextCanvasArea>
-        <DrawingCanvas /> {/* Reusing the drawing canvas for context */}
+        <DrawingCanvas />
       </ContextCanvasArea>
       <ActionButtonsContainer>
         <DoneButton onClick={handleDone}>DONE / DEPLOY</DoneButton>

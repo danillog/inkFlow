@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import InkEngineFactory from 'ink-engine';
+import wasmUrl from '../wasm-modules/ink_engine.wasm?url';
 
 interface AppPoint {
   x: number;
@@ -19,7 +20,14 @@ export const useInkEngine = (): InkEngineAPI => {
   useEffect(() => {
     const loadInkEngineModule = async () => {
       try {
-        const module = await InkEngineFactory();
+        const module = await InkEngineFactory({
+          locateFile: (path) => {
+            if (path.endsWith('.wasm')) {
+              return wasmUrl;
+            }
+            return path;
+          },
+        });
         InkEngineModuleRef.current = module;
         setIsLoaded(true);
       } catch (error) {
@@ -41,7 +49,6 @@ export const useInkEngine = (): InkEngineAPI => {
       const emscriptenVector = new module.VectorPoint();
 
       rawPoints.forEach((p) => {
-        // Point is a value_object, so we pass a plain JS object
         emscriptenVector.push_back({ x: p.x, y: p.y, pressure: p.pressure });
       });
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { useTranslation } from 'react-i18next';
@@ -73,32 +73,41 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onTimerEnd }) => {
   const { t } = useTranslation();
   const {
     pomodoroDuration,
-    pomodoroMinutes,
-    pomodoroSeconds,
     isPomodoroActive,
     isPomodoroFloating,
+    pomodoroExpectedEndTime,
     setPomodoroDuration,
-    setPomodoroTime,
     setIsPomodoroActive,
     togglePomodoroFloating,
+    setPomodoroStartTime,
+    setPomodoroExpectedEndTime,
   } = useUIStore();
+  
+  const [minutes, setMinutes] = useState(pomodoroDuration);
+  const [seconds, setSeconds] = useState(0);
+  const [showPipPortal, setShowPipPortal] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null); // New state variable
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const pipWindowRef = useRef<Window | null>(null);
   const pipContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (isPomodoroActive) {
+    if (isPomodoroActive && pomodoroExpectedEndTime) {
       intervalRef.current = setInterval(() => {
-        if (pomodoroSeconds > 0) {
-          setPomodoroTime(pomodoroMinutes, pomodoroSeconds - 1);
-        } else if (pomodoroMinutes > 0) {
-          setPomodoroTime(pomodoroMinutes - 1, 59);
+        const now = Date.now();
+        const remainingTime = pomodoroExpectedEndTime - now;
+        if (remainingTime > 0) {
+          setMinutes(Math.floor((remainingTime / 1000 / 60) % 60));
+          setSeconds(Math.floor((remainingTime / 1000) % 60));
         } else {
           if (intervalRef.current) clearInterval(intervalRef.current);
           setIsPomodoroActive(false);
           onTimerEnd?.();
-          // Reset to initial state after finishing
-          setPomodoroTime(pomodoroDuration, 0);
+          setMinutes(pomodoroDuration);
+          setSeconds(0);
+          setPomodoroStartTime(null);
+          setPomodoroExpectedEndTime(null);
         }
       }, 1000);
     } else if (intervalRef.current) {
@@ -110,13 +119,55 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onTimerEnd }) => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPomodoroActive, pomodoroMinutes, pomodoroSeconds, onTimerEnd, pomodoroDuration, setPomodoroTime, setIsPomodoroActive]);
+  }, [isPomodoroActive, pomodoroExpectedEndTime, onTimerEnd, pomodoroDuration, setIsPomodoroActive, setPomodoroStartTime, setPomodoroExpectedEndTime]);
+
+  useEffect(() => {
+    // When pomodoroExpectedEndTime changes from outside (e.g., sync), update local state
+    if (!isPomodoroActive && pomodoroExpectedEndTime) {
+      const now = Date.now();
+      const remainingTime = pomodoroExpectedEndTime - now;
+      if (remainingTime > 0) {
+        // Defer state updates to avoid cascading renders
+        setTimeout(() => {
+          setMinutes(Math.floor((remainingTime / 1000 / 60) % 60));
+          setSeconds(Math.floor((remainingTime / 1000) % 60));
+          setIsPomodoroActive(true); // Activate timer based on synced state
+        }, 0);
+      } else {
+        setTimeout(() => {
+          setMinutes(pomodoroDuration);
+          setSeconds(0);
+        }, 0);
+      }
+    }
+  }, [pomodoroExpectedEndTime, isPomodoroActive, pomodoroDuration, setIsPomodoroActive]);
+
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (isPomodoroActive && !isPomodoroFloating) {
+          togglePomodoroFloating();
+        }
+      } else {
+        if (isPomodoroFloating) {
+          togglePomodoroFloating();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPomodoroActive, isPomodoroFloating, togglePomodoroFloating]);
 
   useEffect(() => {
     const openPipWindow = async () => {
-      if ('documentPictureInPicture' in window && isPomodoroFloating) {
+      if ('documentPictureInPicture' in window && isPomodoroFloating && !pipWindowRef.current) {
         try {
-          const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
+          const pipWindow = await window.documentPictureInPicture.requestWindow({
             width: 250,
             height: 150,
           });
@@ -126,6 +177,11 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onTimerEnd }) => {
           const container = document.createElement('div');
           pipContainerRef.current = container;
           pipWindow.document.body.append(container);
+          
+          setTimeout(() => { // Defer state updates
+            setPortalContainer(container);
+            setShowPipPortal(true);
+          }, 0);
 
           [...document.styleSheets].forEach((styleSheet) => {
             try {
@@ -149,44 +205,34 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onTimerEnd }) => {
       }
     };
 
-    if (isPomodoroFloating && !pipWindowRef.current) {
+    if (isPomodoroFloating) {
       openPipWindow();
     } else if (!isPomodoroFloating && pipWindowRef.current) {
       pipWindowRef.current.close();
       pipWindowRef.current = null;
+      setTimeout(() => { // Defer state updates
+        setPortalContainer(null);
+        setShowPipPortal(false);
+      }, 0);
     }
   }, [isPomodoroFloating, togglePomodoroFloating]);
 
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (isPomodoroActive && !isPomodoroFloating) {
-          togglePomodoroFloating();
-        }
-      } else {
-        if (isPomodoroFloating) {
-          togglePomodoroFloating();
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isPomodoroActive, isPomodoroFloating, togglePomodoroFloating]);
-
   const handleStart = () => {
-    setPomodoroTime(pomodoroDuration, 0);
+    const now = Date.now();
+    const endTime = now + pomodoroDuration * 60 * 1000;
+    setPomodoroStartTime(now);
+    setPomodoroExpectedEndTime(endTime);
     setIsPomodoroActive(true);
   };
 
   const handleReset = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setIsPomodoroActive(false);
-    setPomodoroTime(pomodoroDuration, 0);
+    setMinutes(pomodoroDuration);
+    setSeconds(0);
+    setPomodoroStartTime(null);
+    setPomodoroExpectedEndTime(null);
   };
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +245,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onTimerEnd }) => {
   return (
     <Wrapper>
       <TimerDisplay>
-        {formatTime(pomodoroMinutes)}:{formatTime(pomodoroSeconds)}
+        {formatTime(minutes)}:{formatTime(seconds)}
       </TimerDisplay>
       <Controls>
         {!isPomodoroActive ? (
@@ -220,10 +266,9 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ onTimerEnd }) => {
           <Button onClick={handleReset}>{t('pomodoro.reset_button')}</Button>
         )}
       </Controls>
-      {pipContainerRef.current && createPortal(<FloatingPomodoro />, pipContainerRef.current)}
+      {showPipPortal && portalContainer && createPortal(<FloatingPomodoro minutes={minutes} seconds={seconds}/>, portalContainer)}
     </Wrapper>
   );
 };
 
 export default PomodoroTimer;
-

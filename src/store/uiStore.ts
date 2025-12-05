@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, type StoreApi, type UseBoundStore } from 'zustand';
 
 export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'pan' | 'eraser' | 'triangle';
 export type DrawingInputMode = 'pen' | 'touch';
@@ -26,9 +26,9 @@ interface PanOffset {
   y: number;
 }
 
-type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light';
 
-interface UIStore {
+export interface UIStore {
   selectedColor: string;
   drawingTool: DrawingTool;
   drawingInputMode: DrawingInputMode;
@@ -43,6 +43,8 @@ interface UIStore {
   pomodoroSeconds: number;
   isPomodoroActive: boolean;
   isPomodoroFloating: boolean;
+  pomodoroStartTime: number | null;
+  pomodoroExpectedEndTime: number | null;
   setSelectedColor: (color: string) => void;
   setDrawingTool: (tool: DrawingTool) => void;
   toggleDrawingInputMode: () => void;
@@ -55,9 +57,11 @@ interface UIStore {
   setPomodoroTime: (minutes: number, seconds: number) => void;
   setIsPomodoroActive: (isActive: boolean) => void;
   togglePomodoroFloating: () => void;
+  setPomodoroStartTime: (time: number | null) => void;
+  setPomodoroExpectedEndTime: (time: number | null) => void;
 }
 
-export const useUIStore = create<UIStore>((set, get) => ({
+export const createUIStore = () => create<UIStore>((set, get) => ({
   selectedColor: darkTheme.text,
   drawingTool: 'pen',
   drawingInputMode: 'pen',
@@ -72,6 +76,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
   pomodoroSeconds: 0,
   isPomodoroActive: false,
   isPomodoroFloating: false,
+  pomodoroStartTime: null,
+  pomodoroExpectedEndTime: null,
   setSelectedColor: (color) => set({ selectedColor: color }),
   setDrawingTool: (tool) => set({ drawingTool: tool }),
   toggleDrawingInputMode: () => set((state) => ({ drawingInputMode: state.drawingInputMode === 'pen' ? 'touch' : 'pen' })),
@@ -87,4 +93,9 @@ export const useUIStore = create<UIStore>((set, get) => ({
   setPomodoroTime: (minutes, seconds) => set({ pomodoroMinutes: minutes, pomodoroSeconds: seconds }),
   setIsPomodoroActive: (isActive) => set({ isPomodoroActive: isActive }),
   togglePomodoroFloating: () => set((state) => ({ isPomodoroFloating: !state.isPomodoroFloating })),
+  setPomodoroStartTime: (time) => set({ pomodoroStartTime: time }),
+  setPomodoroExpectedEndTime: (time) => set({ pomodoroExpectedEndTime: time }),
 }));
+
+export const useUIStore: UseBoundStore<StoreApi<UIStore>> = createUIStore();
+

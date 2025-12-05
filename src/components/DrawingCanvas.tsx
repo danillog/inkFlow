@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/preserve-manual-memoization */
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import { useInkEngine } from "../hooks/useInkEngine";
@@ -6,7 +5,7 @@ import { db, type DrawingStroke } from "../lib/db";
 import { useTaskStore } from "../store/taskStore";
 import { useUIStore, type DrawingTool } from "../store/uiStore";
 import { yStrokes, awareness } from "../lib/sync";
-import type { StrokeShape } from "../lib/db"; // Import shape interfaces as type-only
+import type { StrokeShape } from "../lib/db";
 
 const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
   position: absolute;
@@ -18,6 +17,9 @@ const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
       case "pan":
         return "grab";
       case "eraser":
+      case "circle": // Added circle to be eraser-like if using touch
+      case "rectangle": // Added rectangle to be eraser-like if using touch
+      case "triangle": // Added triangle to be eraser-like if using touch
         return "cell";
       default:
         return "crosshair";
@@ -66,19 +68,18 @@ const DrawingCanvas: React.FC = () => {
   } = useUIStore();
 
   const existingStrokes = useRef<DrawingStroke[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const remoteStrokes = useRef(new Map<number, any>());
+  const remoteStrokes = useRef(new Map<number, { drawing?: DrawingStroke }>());
   const animationFrameRef = useRef<number>();
   const lastMousePosition = useRef({ x: 0, y: 0 });
 
-  const getTransformedContext = (ctx: CanvasRenderingContext2D) => {
+  const getTransformedContext = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.save();
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     const dpr = window.devicePixelRatio || 1;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Reset transform and apply DPR
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.translate(panOffset.x, panOffset.y);
     ctx.scale(zoom, zoom);
-  };
+  }, [panOffset, zoom]);
 
   const getShapeBounds = (shape: DrawingStroke) => {
     switch (shape.type) {
@@ -116,6 +117,105 @@ const DrawingCanvas: React.FC = () => {
     }
   };
 
+  const drawTextInShape = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    shape: DrawingStroke
+  ) => {
+    let centerX = 0;
+    let centerY = 0;
+    let maxWidth = 0;
+    let maxHeight = 0;
+
+    switch (shape.type) {
+      case "rectangle":
+        centerX = shape.x + shape.width / 2;
+        centerY = shape.y + shape.height / 2;
+        maxWidth = Math.abs(shape.width) * 0.9;
+        maxHeight = Math.abs(shape.height) * 0.9;
+        break;
+      case "circle":
+        centerX = shape.cx;
+        centerY = shape.cy;
+        maxWidth = shape.radius * 1.4;
+        maxHeight = shape.radius * 1.4;
+        break;
+      case "triangle":
+        centerX = (shape.p1.x + shape.p2.x + shape.p3.x) / 3;
+        centerY = (shape.p1.y + shape.p2.y + shape.p3.y) / 3;
+        const xs = [shape.p1.x, shape.p2.x, shape.p3.x];
+        const ys = [shape.p1.y, shape.p2.y, shape.p3.y];
+        maxWidth = (Math.max(...xs) - Math.min(...xs)) * 0.7;
+        maxHeight = (Math.max(...ys) - Math.min(...ys)) * 0.7;
+        break;
+      default:
+        return;
+    }
+
+    const words = text.split(" ");
+    let line = "";
+    const lines = [];
+    let fontSize = Math.min(maxHeight, maxWidth / 2); // Start with a reasonable guess
+
+    ctx.font = `${
+      fontSize / zoom
+    }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    
+    // Function to check if text fits
+    const doesTextFit = (currentLines: string[], currentFontSize: number) => {
+      const testFont = `${
+        currentFontSize / zoom
+      }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
+      ctx.font = testFont;
+      const lineHeight = currentFontSize / zoom * 1.2;
+      if (currentLines.length * lineHeight > maxHeight) return false;
+      for(const l of currentLines) {
+        if(ctx.measureText(l).width > maxWidth) return false;
+      }
+      return true;
+    }
+
+    // Reduce font size until it fits
+    while(fontSize > 1) {
+      const testFont = `${
+        fontSize / zoom
+      }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
+      ctx.font = testFont;
+      const testLines = [];
+      let currentLine = '';
+      for(const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if(ctx.measureText(testLine).width > maxWidth) {
+          testLines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      testLines.push(currentLine);
+
+      const lineHeight = fontSize / zoom * 1.2;
+      if(testLines.length * lineHeight <= maxHeight) {
+        lines.push(...testLines);
+        break;
+      }
+
+      fontSize -= 2; // Reduce font size and try again
+    }
+    
+    if(!lines.length) return; // Cant fit text
+
+    const lineHeight = fontSize / zoom * 1.2;
+    const totalTextHeight = lines.length * lineHeight;
+    let startY = centerY - totalTextHeight / 2 + lineHeight / 2;
+
+    lines.forEach((l, index) => {
+      ctx.fillText(l, centerX, startY + index * lineHeight);
+    });
+  };
+
   const drawShape = useCallback(
     (ctx: CanvasRenderingContext2D, shape: DrawingStroke) => {
       ctx.strokeStyle = shape.color || colors.text;
@@ -140,18 +240,7 @@ const DrawingCanvas: React.FC = () => {
         case "rectangle":
           ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
           if (shape.text) {
-            const fontSize =
-              Math.min(Math.abs(shape.width), Math.abs(shape.height)) * 0.5;
-            ctx.font = `${
-              fontSize / zoom
-            }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(
-              shape.text,
-              shape.x + shape.width / 2,
-              shape.y + shape.height / 2
-            );
+            drawTextInShape(ctx, shape.text, shape);
           }
           break;
         case "circle":
@@ -159,13 +248,7 @@ const DrawingCanvas: React.FC = () => {
           ctx.arc(shape.cx, shape.cy, shape.radius, 0, Math.PI * 2);
           ctx.stroke();
           if (shape.text) {
-            const fontSize = shape.radius * 0.8;
-            ctx.font = `${
-              fontSize / zoom
-            }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(shape.text, shape.cx, shape.cy);
+            drawTextInShape(ctx, shape.text, shape);
           }
           break;
         case "triangle":
@@ -176,20 +259,12 @@ const DrawingCanvas: React.FC = () => {
           ctx.closePath();
           ctx.stroke();
           if (shape.text) {
-            const centerX = (shape.p1.x + shape.p2.x + shape.p3.x) / 3;
-            const centerY = (shape.p1.y + shape.p2.y + shape.p3.y) / 3;
-            const fontSize = 24;
-            ctx.font = `${
-              fontSize / zoom
-            }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(shape.text, centerX, centerY);
+            drawTextInShape(ctx, shape.text, shape);
           }
           break;
       }
     },
-    [processStroke, zoom]
+    [processStroke, zoom, colors.text]
   );
 
   const redrawAllShapes = useCallback(() => {
@@ -198,14 +273,13 @@ const DrawingCanvas: React.FC = () => {
     getTransformedContext(ctx);
     existingStrokes.current.forEach((shape) => drawShape(ctx, shape));
     ctx.restore();
-  }, [drawShape, panOffset, zoom]);
+  }, [drawShape, getTransformedContext]); // Changed dependencies
 
   const getStrokeUnderPoint = useCallback(
     (point: { x: number; y: number }): string | null => {
       const eraserRadius = 10 / zoom;
       for (let i = existingStrokes.current.length - 1; i >= 0; i--) {
         const shape = existingStrokes.current[i];
-        // Simplified collision detection logic
         switch (shape.type) {
           case "stroke":
             if (
@@ -290,7 +364,7 @@ const DrawingCanvas: React.FC = () => {
     return () => {
       cancelAnimationFrame(animationFrameRef.current!);
     };
-  }, [isDrawing, drawShape, drawingTool, zoom]);
+  }, [isDrawing, drawShape, drawingTool, zoom, getTransformedContext, colors.accent]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -351,7 +425,6 @@ const DrawingCanvas: React.FC = () => {
     [panOffset, zoom]
   );
 
-  // Refs for gesture management
   const activePointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStartDistance = useRef(0);
   const pinchStartZoom = useRef(1);
@@ -364,7 +437,6 @@ const DrawingCanvas: React.FC = () => {
       (e.target as HTMLDivElement).setPointerCapture(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      // Two fingers down: start pinching
       if (activePointers.current.size === 2) {
         gestureState.current = "pinching";
         const pointers = Array.from(activePointers.current.values());
@@ -372,17 +444,14 @@ const DrawingCanvas: React.FC = () => {
         const dy = pointers[0].y - pointers[1].y;
         pinchStartDistance.current = Math.sqrt(dx * dx + dy * dy);
         pinchStartZoom.current = zoom;
-        // Stop any drawing that might have started
         setIsDrawing(false);
         localStroke.current = {};
         awareness?.setLocalStateField("drawing", null);
         return;
       }
 
-      // One finger down: start drawing or panning
       if (activePointers.current.size === 1) {
         const { drawingInputMode } = useUIStore.getState();
-        // Ignore touch if in pen-only mode AND it's not the pan tool
         if (
           drawingTool !== "pan" &&
           drawingInputMode === "pen" &&
@@ -393,7 +462,7 @@ const DrawingCanvas: React.FC = () => {
 
         const point = getScreenToWorldCoordinates(e.clientX, e.clientY);
         setStartPoint({ ...point, pressure: e.pressure || 0.5 });
-        setIsDrawing(true); // Optimistically set to true
+        setIsDrawing(true);
 
         if (
           drawingTool === "pan" ||
@@ -471,7 +540,6 @@ const DrawingCanvas: React.FC = () => {
       if (!activePointers.current.has(e.pointerId)) return;
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      // Pinching logic
       if (
         gestureState.current === "pinching" &&
         activePointers.current.size === 2
@@ -499,10 +567,9 @@ const DrawingCanvas: React.FC = () => {
         setZoom(newZoom);
         setPanOffset({ x: newPanX, y: newPanY });
 
-        return; // Don't do other things while pinching
+        return;
       }
 
-      // Panning logic for a single pointer
       if (
         gestureState.current === "panning" &&
         isDrawing &&
@@ -515,7 +582,6 @@ const DrawingCanvas: React.FC = () => {
         return;
       }
 
-      // Drawing logic
       if (gestureState.current === "drawing" && isDrawing) {
         const currentPoint = getScreenToWorldCoordinates(e.clientX, e.clientY);
         lastMousePosition.current = currentPoint;
@@ -596,13 +662,11 @@ const DrawingCanvas: React.FC = () => {
       drawingTool,
       startPoint,
       panOffset,
-      zoom,
       getScreenToWorldCoordinates,
       setZoom,
       setPanOffset,
       eraseAtPoint,
       shapeText,
-      awareness,
     ]
   );
 
@@ -611,7 +675,6 @@ const DrawingCanvas: React.FC = () => {
       (e.target as HTMLDivElement).releasePointerCapture(e.pointerId);
       activePointers.current.delete(e.pointerId);
 
-      // End of a pinch
       if (
         gestureState.current === "pinching" &&
         activePointers.current.size < 2
@@ -620,7 +683,6 @@ const DrawingCanvas: React.FC = () => {
         pinchStartDistance.current = 0;
       }
 
-      // Last pointer is lifted
       if (activePointers.current.size < 1) {
         if (gestureState.current === "drawing" && localStroke.current.type) {
           const isShapeTool =
@@ -633,11 +695,11 @@ const DrawingCanvas: React.FC = () => {
           } as DrawingStroke;
 
           if (
-            finalShape.type === "stroke" &&
-            (!finalShape.points || finalShape.points.length < 2)
+            !(
+              finalShape.type === "stroke" &&
+              (!finalShape.points || finalShape.points.length < 2)
+            )
           ) {
-            // Do not save dot strokes
-          } else {
             yStrokes.push([finalShape]);
           }
         }
@@ -649,7 +711,7 @@ const DrawingCanvas: React.FC = () => {
         awareness?.setLocalStateField("drawing", null);
       }
     },
-    [drawingTool, shapeText, awareness]
+    [drawingTool, shapeText, awareness, yStrokes]
   );
 
   const handleWheel = useCallback(

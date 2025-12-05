@@ -1,6 +1,10 @@
 import React from "react";
 import styled from "styled-components";
-import { useUIStore } from "../store/uiStore";
+
+interface FloatingPomodoroProps {
+  minutes: number;
+  seconds: number;
+}
 
 const Wrapper = styled.div`
   display: flex;
@@ -21,13 +25,11 @@ const TimerDisplay = styled.div`
 
 const formatTime = (time: number) => (time < 10 ? `0${time}` : time);
 
-const FloatingPomodoro: React.FC = () => {
-  const { pomodoroMinutes, pomodoroSeconds } = useUIStore();
-
+const FloatingPomodoro: React.FC<FloatingPomodoroProps> = ({ minutes, seconds }) => {
   return (
     <Wrapper>
       <TimerDisplay>
-        {formatTime(pomodoroMinutes)}:{formatTime(pomodoroSeconds)}
+        {formatTime(minutes)}:{formatTime(seconds)}
       </TimerDisplay>
     </Wrapper>
   );

@@ -10,6 +10,7 @@ import { useUIStore } from "../store/uiStore";
 import type { lightTheme } from "../store/uiStore";
 
 declare module "styled-components" {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   export interface DefaultTheme extends Readonly<typeof lightTheme> {}
 }
 import { useTranslation } from "react-i18next";
@@ -82,7 +83,7 @@ const ControlsContainer = styled.div`
   align-items: flex-end;
 
   @media (max-width: 768px) {
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
   }
 `;
@@ -220,9 +221,6 @@ const BlackBoxViewContent: React.FC = () => {
       setSyncRoomName(getCurrentRoomName()!);
       setIsConnected(true);
     }
-    return () => {
-      disconnectYjs();
-    };
   }, []);
 
   const handleExportData = async () => {

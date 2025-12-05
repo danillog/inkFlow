@@ -41,20 +41,31 @@ const QuickCaptureInput = styled.input`
 
 const CategorySelector = styled.div`
   display: flex;
-  gap: 1rem;
-  color: #C9D1D9;
+  background-color: #0D1117;
+  border-radius: 20px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
-const RadioLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+const CategoryButton = styled.button<{ active: boolean }>`
+  padding: 0.5rem 1rem;
+  border-radius: 16px;
+  border: none;
+  background-color: ${({ active }) => (active ? '#238636' : 'transparent')};
+  color: #C9D1D9;
   cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out;
+
+  &:hover {
+    background-color: ${({ active }) => (active ? '#238636' : 'rgba(255, 255, 255, 0.1)')};
+  }
 `;
 
 const QuickCapture: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
-  const [category, setCategory] = useState<'personal' | 'work'>('personal'); // Corrected type
+  const [category, setCategory] = useState<'personal' | 'work'>('personal');
   const addTask = useTaskStore((state) => state.addTask);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -74,26 +85,18 @@ const QuickCapture: React.FC = () => {
         onKeyPress={handleKeyPress}
       />
       <CategorySelector>
-        <RadioLabel>
-          <input
-            type="radio"
-            name="category"
-            value="personal"
-            checked={category === 'personal'}
-            onChange={() => setCategory('personal')}
-          />
+        <CategoryButton
+          active={category === 'personal'}
+          onClick={() => setCategory('personal')}
+        >
           Personal
-        </RadioLabel>
-        <RadioLabel>
-          <input
-            type="radio"
-            name="category"
-            value="work"
-            checked={category === 'work'}
-            onChange={() => setCategory('work')}
-          />
+        </CategoryButton>
+        <CategoryButton
+          active={category === 'work'}
+          onClick={() => setCategory('work')}
+        >
           Work
-        </RadioLabel>
+        </CategoryButton>
       </CategorySelector>
     </QuickCaptureContainer>
   );

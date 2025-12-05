@@ -25,9 +25,9 @@ const GlobalStyle = createGlobalStyle`
 const AppContainer = styled.div`
   width: 100%;
   height: 100%;
-  max-width: 100vw; /* Ensure it doesn't exceed viewport width */
-  max-height: 100vh; /* Ensure it doesn't exceed viewport height */
-  overflow: hidden; /* Prevent app content from scrolling */
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
 `;
 
 const AppLayout = styled.div`
@@ -38,7 +38,6 @@ const AppLayout = styled.div`
   align-items: center;
 `;
 
-// The main application logic with the view switcher
 function MainApp() {
   const currentView = useTaskStore((state) => state.currentView);
 

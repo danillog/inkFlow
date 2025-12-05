@@ -58,26 +58,25 @@ const DrawingToolbar: React.FC = () => {
   gap: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 100;
-  width: auto;
+  width: 56px;
 
   @media (max-width: 768px) {
     top: auto;
     bottom: 20px;
-    left: 20px;
-    right: 20px;
-    width: fit-content;
-    max-width: 90vw;
-    transform: none;
+    left: 50%;
+    transform: translateX(-50%);
     flex-direction: row;
     align-items: center;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: auto;
   }
 `;
 
 const ToolButton = styled.button<{ $isSelected: boolean }>`
   background-color: ${(props) =>
-    props.$isSelected ? colors.primary : "transparent"};
-  color: ${colors.text};
+    props.$isSelected ? props.theme.primary : "transparent"};
+  color: ${({ theme }) => theme.text};
   border: 1px solid transparent;
   width: 40px;
   height: 40px;
@@ -90,12 +89,12 @@ const ToolButton = styled.button<{ $isSelected: boolean }>`
   font-size: 1.2rem;
 
   &:hover {
-    border-color: ${colors.text};
+    border-color: ${({ theme }) => theme.text};
   }
 `;
 
 const ColorToolButton = styled(ToolButton)`
-  border: 2px solid ${colors.text};
+  border: 2px solid ${({ theme }) => theme.text};
   background-color: ${(props) => props.color};
 `;
 
@@ -103,6 +102,25 @@ const Separator = styled.hr`
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   width: 100%;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const InputContainer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 8px;
+  z-index: 100;
+
+  @media (max-width: 768px) {
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-left: 0;
+  }
 `;
 
 const SymbolInput = styled.input`
@@ -110,7 +128,7 @@ const SymbolInput = styled.input`
   color: ${colors.text};
   border: 1px solid ${colors.surface};
   border-radius: 6px;
-  width: 100%;
+  width: 150px;
   height: 40px;
   text-align: center;
   font-size: 1rem;
@@ -123,53 +141,73 @@ const SymbolInput = styled.input`
   }
 `;
 
+const PaletteContainerWrapper = styled.div`
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  z-index: 101;
+  margin-bottom: 8px;
+  
+  @media (max-width: 768px) {
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+`;
+
   return (
-    <ToolbarContainer>
-      {tools.map((tool) => (
-        <ToolButton
-          key={tool.name}
-          $isSelected={drawingTool === tool.name}
-          onClick={() => setDrawingTool(tool.name)}
-          title={tool.name.charAt(0).toUpperCase() + tool.name.slice(1)}
-        >
-          {tool.icon}
-        </ToolButton>
-      ))}
-      <Separator />
-      <ColorToolButton
-        $isSelected={false}
-        color={selectedColor}
-        onClick={() => setIsColorPaletteOpen(!isColorPaletteOpen)}
-      />
-      {isColorPaletteOpen && (
-        <ColorPalette onColorSelect={() => setIsColorPaletteOpen(false)} />
-      )}
-      <Separator />
-      {isShapeTool && (
-        <SymbolInput
-          type="text"
-          value={shapeText}
-          onChange={(e) => setShapeText(e.target.value)}
-          maxLength={100}
-          placeholder="text..."
+    <>
+      <ToolbarContainer>
+        {tools.map((tool) => (
+          <ToolButton
+            key={tool.name}
+            $isSelected={drawingTool === tool.name}
+            onClick={() => setDrawingTool(tool.name)}
+            title={tool.name.charAt(0).toUpperCase() + tool.name.slice(1)}
+          >
+            {tool.icon}
+          </ToolButton>
+        ))}
+        <Separator />
+        <ColorToolButton
+          $isSelected={false}
+          color={selectedColor}
+          onClick={() => setIsColorPaletteOpen(!isColorPaletteOpen)}
         />
+        {isColorPaletteOpen && (
+          <PaletteContainerWrapper>
+            <ColorPalette onColorSelect={() => setIsColorPaletteOpen(false)} />
+          </PaletteContainerWrapper>
+        )}
+        <Separator />
+        <ToolButton onClick={handleUndo} $isSelected={false} title="Undo">
+          ↩️
+        </ToolButton>
+        <Separator />
+        <ToolButton
+          onClick={toggleDrawingInputMode}
+          $isSelected={false}
+          title={
+            drawingInputMode === "pen"
+              ? t("toolbar.pen_mode")
+              : t("toolbar.touch_mode")
+          }
+        >
+          {drawingInputMode === "pen" ? "🖊️" : "👆"}
+        </ToolButton>
+      </ToolbarContainer>
+      {isShapeTool && (
+        <InputContainer>
+          <SymbolInput
+            type="text"
+            value={shapeText}
+            onChange={(e) => setShapeText(e.target.value)}
+            maxLength={100}
+            placeholder="text..."
+          />
+        </InputContainer>
       )}
-      <ToolButton onClick={handleUndo} $isSelected={false} title="Undo">
-        ↩️
-      </ToolButton>
-      <Separator />
-      <ToolButton
-        onClick={toggleDrawingInputMode}
-        $isSelected={false}
-        title={
-          drawingInputMode === "pen"
-            ? t("toolbar.pen_mode")
-            : t("toolbar.touch_mode")
-        }
-      >
-        {drawingInputMode === "pen" ? "🖊️" : "👆"}
-      </ToolButton>
-    </ToolbarContainer>
+    </>
   );
 };
 

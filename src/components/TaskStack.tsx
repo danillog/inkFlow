@@ -7,8 +7,8 @@ import type { Task } from "../lib/db";
 
 const TaskStackContainer = styled.div<{ width: number }>`
   width: ${(props) => props.width}px;
-  min-width: 200px; 
-  max-width: 800px; 
+  min-width: 200px;
+  max-width: 800px;
   background-color: ${({ theme }) => theme.surface};
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1rem;
@@ -18,8 +18,8 @@ const TaskStackContainer = styled.div<{ width: number }>`
   flex-direction: column;
   gap: 0.5rem;
   overflow-y: auto;
-  z-index: 100;
-  position: relative; 
+  z-index: 1000;
+  position: relative;
 
   @media (max-width: 1024px) {
     width: 100%;
@@ -38,6 +38,10 @@ const ResizeHandle = styled.div`
   height: 100%;
   cursor: col-resize;
   z-index: 101;
+
+  @media (max-width: 1024px) {
+    display: none;
+  }
 `;
 
 const TaskCard = styled.div`
@@ -62,7 +66,7 @@ const TaskContent = styled.span<{ $isCompleted: boolean }>`
   flex-grow: 1;
   font-size: 0.9rem;
   margin-right: 0.5rem;
-  white-space: normal; 
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: ${(props) => (props.$isCompleted ? "line-through" : "none")};
@@ -73,22 +77,24 @@ const TaskContent = styled.span<{ $isCompleted: boolean }>`
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.3rem; 
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  pointer-events: none; 
+  gap: 0.3rem;
+
+  @media (max-width: 768px) {
+    opacity: 1;
+    pointer-events: all;
+  }
 
   ${TaskCard}:hover & {
     opacity: 1;
-    pointer-events: all; 
+    pointer-events: all;
   }
 `;
 
 const RemoveButton = styled.button`
   background-color: transparent;
   border: 1px solid transparent;
-  color: rgba(201, 209, 217, 0.6); 
-  font-size: 0.9rem; 
+  color: rgba(201, 209, 217, 0.6);
+  font-size: 0.9rem;
   cursor: pointer;
   width: 24px;
   height: 24px;
@@ -105,44 +111,43 @@ const RemoveButton = styled.button`
 `;
 
 const FocusButton = styled.button`
-  background-color: ${({ theme }) => theme.primary}; 
+  background-color: ${({ theme }) => theme.primary};
   color: ${({ theme }) => theme.text};
   border: none;
-  padding: 0.4rem 0.8rem; 
+  padding: 0.4rem 0.8rem;
   border-radius: 5px;
   cursor: pointer;
   font-size: 0.8rem;
-  font-weight: 600; 
+  font-weight: 600;
   transition: background-color 0.2s, opacity 0.2s;
 
   &:hover {
-    background-color: #2d9b40; 
-    opacity: 1; 
+    background-color: #2d9b40;
+    opacity: 1;
   }
 `;
 
-const CategoryIndicator = styled.div<{ category?: Task['category'] }>`
+const CategoryIndicator = styled.div<{ category?: Task["category"] }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
   margin-right: 0.5rem;
   background-color: ${({ category }) =>
-    category === 'work' ? '#238636' : '#388bfd'};
+    category === "work" ? "#238636" : "#388bfd"};
 `;
 
 const TaskStack: React.FC = () => {
   const { t } = useTranslation();
   const tasks = useTaskStore((state) => state.tasks);
 
-  
   const sortedTasks = [...tasks].sort((a, b) => {
     if (a.status !== "completed" && b.status === "completed") {
-      return -1; 
+      return -1;
     }
     if (a.status === "completed" && b.status !== "completed") {
-      return 1; 
+      return 1;
     }
-    return 0; 
+    return 0;
   });
 
   const removeTask = useTaskStore((state) => state.removeTask);
@@ -159,8 +164,7 @@ const TaskStack: React.FC = () => {
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isResizing.current) {
-      const newWidth =
-        window.innerWidth - e.clientX;
+      const newWidth = window.innerWidth - e.clientX;
       setWidth(newWidth);
     }
   }, []);
@@ -178,7 +182,6 @@ const TaskStack: React.FC = () => {
     };
   }, [handleMouseMove, handleMouseUp]);
 
-
   return (
     <TaskStackContainer width={width} theme={colors}>
       <ResizeHandle onMouseDown={handleMouseDown} />
@@ -189,14 +192,22 @@ const TaskStack: React.FC = () => {
         sortedTasks.map((task) => (
           <TaskCard key={task.id} draggable theme={colors}>
             <CategoryIndicator category={task.category} />
-            <TaskContent $isCompleted={task.status === "completed"} theme={colors}>
+            <TaskContent
+              $isCompleted={task.status === "completed"}
+              theme={colors}
+            >
               {task.content}
             </TaskContent>
             <ActionButtons>
-              <FocusButton onClick={() => setActiveTask(task.id)} theme={colors}>
+              <FocusButton
+                onClick={() => setActiveTask(task.id)}
+                theme={colors}
+              >
                 {t("taskstack.focus")}
               </FocusButton>
-              <RemoveButton onClick={() => removeTask(task.id)}>{t("taskstack.remove")}</RemoveButton>
+              <RemoveButton onClick={() => removeTask(task.id)}>
+                {t("taskstack.remove")}
+              </RemoveButton>
             </ActionButtons>
           </TaskCard>
         ))

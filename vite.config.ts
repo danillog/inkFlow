@@ -1,7 +1,9 @@
-import { defineConfig } from "vite";
+/// <reference types="vitest" />
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import type { PluginOption } from "vite";
 
 export default defineConfig({
   plugins: [
@@ -48,10 +50,16 @@ export default defineConfig({
         });
       },
     },
-  ],
+  ] as PluginOption[],
   resolve: {
     alias: {
       "ink-engine": path.resolve(__dirname, "src/wasm-modules/ink_engine.js"),
     },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/tests/setup.ts',
+    include: ['**/*.{test,spec,integration.test}.{ts,tsx}'],
   },
 });

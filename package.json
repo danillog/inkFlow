@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest"
   },
   "dependencies": {
     "dexie": "^4.2.1",
@@ -26,19 +27,25 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/styled-components": "^5.1.36",
-    "@vitejs/plugin-react": "^5.1.1",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "vite-plugin-pwa": "^1.1.0"
-  }
-}
+      "@eslint/js": "^9.39.1",
+      "@testing-library/jest-dom": "^6.4.5",
+      "@testing-library/react": "^16.0.0",
+      "@types/node": "^24.10.1",
+      "@types/react": "^18.2.0",
+      "@types/react-dom": "^18.2.0",
+      "@types/styled-components": "^5.1.36",
+      "@types/ws": "^8.5.10",
+      "@vitejs/plugin-react": "^5.1.1",
+      "eslint": "^9.39.1",
+      "eslint-plugin-react-hooks": "^7.0.1",
+      "eslint-plugin-react-refresh": "^0.4.24",
+      "fake-indexeddb": "^6.0.0",
+      "globals": "^16.5.0",
+      "jsdom": "^24.1.0",
+      "typescript": "~5.9.3",
+      "typescript-eslint": "^8.46.4",
+      "vite": "^5.2.4",
+      "vite-plugin-pwa": "^1.1.0",
+      "vitest": "^2.0.1",
+      "ws": "^8.17.1"
+    }}
