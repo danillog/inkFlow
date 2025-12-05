@@ -62,14 +62,19 @@ const DrawingToolbar: React.FC = () => {
 
   @media (max-width: 768px) {
     top: auto;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 0;
+    left: 0;
+    transform: none;
     flex-direction: row;
     align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    width: 100%;
+    overflow-x: auto;
+    padding: 8px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0;
+    box-shadow: none;
   }
 `;
 

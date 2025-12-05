@@ -153,7 +153,6 @@ const DrawingCanvas: React.FC = () => {
     }
 
     const words = text.split(" ");
-    let line = "";
     const lines = [];
     let fontSize = Math.min(maxHeight, maxWidth / 2); // Start with a reasonable guess
 
@@ -162,20 +161,6 @@ const DrawingCanvas: React.FC = () => {
     }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    
-    // Function to check if text fits
-    const doesTextFit = (currentLines: string[], currentFontSize: number) => {
-      const testFont = `${
-        currentFontSize / zoom
-      }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
-      ctx.font = testFont;
-      const lineHeight = currentFontSize / zoom * 1.2;
-      if (currentLines.length * lineHeight > maxHeight) return false;
-      for(const l of currentLines) {
-        if(ctx.measureText(l).width > maxWidth) return false;
-      }
-      return true;
-    }
 
     // Reduce font size until it fits
     while(fontSize > 1) {
@@ -464,13 +449,7 @@ const DrawingCanvas: React.FC = () => {
         setStartPoint({ ...point, pressure: e.pressure || 0.5 });
         setIsDrawing(true);
 
-        if (
-          drawingTool === "pan" ||
-          (drawingInputMode === "touch" &&
-            e.pointerType === "touch" &&
-            drawingTool !== "pen" &&
-            drawingTool !== "eraser")
-        ) {
+        if (drawingTool === "pan") {
           gestureState.current = "panning";
         } else {
           gestureState.current = "drawing";

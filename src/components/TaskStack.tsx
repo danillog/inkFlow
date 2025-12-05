@@ -23,7 +23,7 @@ const TaskStackContainer = styled.div<{ width: number }>`
 
   @media (max-width: 1024px) {
     width: 100%;
-    max-height: 40%;
+    max-height: 77%;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     box-sizing: border-box;

@@ -5,6 +5,8 @@ import SniperModeView from './views/SniperModeView';
 import RealityCheckView from './views/RealityCheckView';
 import LandingPageView from './views/LandingPageView';
 import { useTaskStore } from './store/taskStore';
+import { useState, useEffect } from 'react';
+import MobileLayout from './components/MobileLayout';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -18,7 +20,8 @@ const GlobalStyle = createGlobalStyle`
 
   #root {
     width: 100%;
-    height: 100%;
+    height: 100vh;
+    overflow: hidden;
   }
 `;
 
@@ -39,9 +42,22 @@ const AppLayout = styled.div`
 `;
 
 function MainApp() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const currentView = useTaskStore((state) => state.currentView);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const renderView = () => {
+    if (isMobile) {
+      return <MobileLayout />;
+    }
+
     switch (currentView) {
       case 'sniper':
         return <SniperModeView />;
