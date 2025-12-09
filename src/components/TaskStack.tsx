@@ -136,6 +136,20 @@ const CategoryIndicator = styled.div<{ category?: Task["category"] }>`
     category === "work" ? "#238636" : "#388bfd"};
 `;
 
+const Checkbox = styled.input.attrs({ type: "checkbox" })`
+  margin-right: 0.5rem;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: ${({ theme }) => theme.primary};
+`;
+
+const TaskInfo = styled.div`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+`;
+
 const TaskStack: React.FC = () => {
   const { t } = useTranslation();
   const tasks = useTaskStore((state) => state.tasks);
@@ -152,6 +166,7 @@ const TaskStack: React.FC = () => {
 
   const removeTask = useTaskStore((state) => state.removeTask);
   const setActiveTask = useTaskStore((state) => state.setActiveTask);
+  const updateTask = useTaskStore((state) => state.updateTask);
   const { colors } = useUIStore();
 
   const [width, setWidth] = useState(250);
@@ -192,12 +207,28 @@ const TaskStack: React.FC = () => {
         sortedTasks.map((task) => (
           <TaskCard key={task.id} draggable theme={colors}>
             <CategoryIndicator category={task.category} />
-            <TaskContent
-              $isCompleted={task.status === "completed"}
-              theme={colors}
-            >
-              {task.content}
-            </TaskContent>
+            <TaskInfo>
+              <Checkbox
+                checked={task.status === "completed"}
+                onChange={() => {
+                  if (task.status === "completed") {
+                    updateTask(task.id, { status: "pending", completedAt: undefined });
+                  } else {
+                    updateTask(task.id, {
+                      status: "completed",
+                      completedAt: Date.now(),
+                    });
+                  }
+                }}
+                theme={colors}
+              />
+              <TaskContent
+                $isCompleted={task.status === "completed"}
+                theme={colors}
+              >
+                {task.content}
+              </TaskContent>
+            </TaskInfo>
             <ActionButtons>
               <FocusButton
                 onClick={() => setActiveTask(task.id)}
