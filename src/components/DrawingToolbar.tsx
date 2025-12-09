@@ -4,6 +4,7 @@ import { useUIStore, type DrawingTool } from "../store/uiStore";
 import { yStrokes, awareness } from "../lib/sync";
 import { useTranslation } from "react-i18next";
 import ColorPalette from "./ColorPalette";
+import EngineSwitch from "./EngineSwitch";
 
 
 
@@ -188,6 +189,8 @@ const PaletteContainerWrapper = styled.div`
         <ToolButton onClick={handleUndo} $isSelected={false} title="Undo">
           ↩️
         </ToolButton>
+        <Separator />
+        <EngineSwitch />
         <Separator />
         <ToolButton
           onClick={toggleDrawingInputMode}

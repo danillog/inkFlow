@@ -2,10 +2,12 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import { useInkEngine } from "../hooks/useInkEngine";
 import { db, type DrawingStroke } from "../lib/db";
+import { processStrokeJS } from "../lib/js-ink-engine";
 import { useTaskStore } from "../store/taskStore";
 import { useUIStore, type DrawingTool } from "../store/uiStore";
 import { yStrokes, awareness } from "../lib/sync";
 import type { StrokeShape } from "../lib/db";
+import PerformanceMonitor from "./PerformanceMonitor";
 
 const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
   position: absolute;
@@ -56,16 +58,18 @@ const DrawingCanvas: React.FC = () => {
   const { processStroke, isLoaded } = useInkEngine();
   const activeTaskId = useTaskStore((state) => state.activeTaskId);
   const canvasRevision = useTaskStore((state) => state.canvasRevision);
-  const {
-    selectedColor,
-    drawingTool,
-    panOffset,
-    zoom,
-    setPanOffset,
-    setZoom,
-    shapeText,
-    colors,
-  } = useUIStore();
+  
+  const selectedColor = useUIStore((state) => state.selectedColor);
+  const drawingTool = useUIStore((state) => state.drawingTool);
+  const panOffset = useUIStore((state) => state.panOffset);
+  const zoom = useUIStore((state) => state.zoom);
+  const setPanOffset = useUIStore((state) => state.setPanOffset);
+  const setZoom = useUIStore((state) => state.setZoom);
+  const shapeText = useUIStore((state) => state.shapeText);
+  const colors = useUIStore((state) => state.colors);
+  const engineType = useUIStore((state) => state.engineType);
+  const setLastStrokePerformance = useUIStore((state) => state.setLastStrokePerformance);
+
 
   const existingStrokes = useRef<DrawingStroke[]>([]);
   const remoteStrokes = useRef(new Map<number, { drawing?: DrawingStroke }>());
@@ -209,17 +213,36 @@ const DrawingCanvas: React.FC = () => {
 
       switch (shape.type) {
         case "stroke": {
-          const processed = processStroke(shape.points);
-          if (processed.length === 0) return;
+          const t0 = performance.now();
+          
+          // Conditionally select the engine
+          const processed =
+            engineType === "wasm"
+              ? processStroke(shape.points)
+              : processStrokeJS(shape.points);
+          
+          const t1 = performance.now();
+          setLastStrokePerformance(t1 - t0);
+
+          if (processed.length < 2) return;
+          
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
-          ctx.beginPath();
-          ctx.moveTo(processed[0].x, processed[0].y);
-          processed.forEach((point) => {
-            ctx.lineWidth = (point.pressure * 5 + 1) / zoom;
-            ctx.lineTo(point.x, point.y);
-          });
-          ctx.stroke();
+
+          // To draw a line with variable width, we must stroke each segment individually.
+          for (let i = 0; i < processed.length - 1; i++) {
+            const p1 = processed[i];
+            const p2 = processed[i + 1];
+
+            const avgPressure = (p1.pressure + p2.pressure) / 2;
+            
+            ctx.lineWidth = (avgPressure * 5 + 1) / zoom;
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
           break;
         }
         case "rectangle":
@@ -249,7 +272,7 @@ const DrawingCanvas: React.FC = () => {
           break;
       }
     },
-    [processStroke, zoom, colors.text]
+    [processStroke, zoom, colors.text, engineType, setLastStrokePerformance]
   );
 
   const redrawAllShapes = useCallback(() => {
@@ -411,9 +434,7 @@ const DrawingCanvas: React.FC = () => {
   );
 
   const activePointers = useRef(new Map<number, { x: number; y: number }>());
-  const pinchStartDistance = useRef(0);
-  const pinchStartZoom = useRef(1);
-  const gestureState = useRef<"drawing" | "panning" | "pinching" | null>(null);
+  const gestureState = useRef<"drawing" | "panning" | null>(null);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -422,20 +443,7 @@ const DrawingCanvas: React.FC = () => {
       (e.target as HTMLDivElement).setPointerCapture(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (activePointers.current.size === 2) {
-        gestureState.current = "pinching";
-        const pointers = Array.from(activePointers.current.values());
-        const dx = pointers[0].x - pointers[1].x;
-        const dy = pointers[0].y - pointers[1].y;
-        pinchStartDistance.current = Math.sqrt(dx * dx + dy * dy);
-        pinchStartZoom.current = zoom;
-        setIsDrawing(false);
-        localStroke.current = {};
-        awareness?.setLocalStateField("drawing", null);
-        return;
-      }
-
-      if (activePointers.current.size === 1) {
+      if (activePointers.current.size === 1) { // Only handle single pointer events for drawing/panning
         const { drawingInputMode } = useUIStore.getState();
         if (
           drawingTool !== "pan" &&
@@ -518,36 +526,6 @@ const DrawingCanvas: React.FC = () => {
       e.preventDefault();
       if (!activePointers.current.has(e.pointerId)) return;
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-      if (
-        gestureState.current === "pinching" &&
-        activePointers.current.size === 2
-      ) {
-        const pointers = Array.from(activePointers.current.values());
-        const dx = pointers[0].x - pointers[1].x;
-        const dy = pointers[0].y - pointers[1].y;
-        const newDist = Math.sqrt(dx * dx + dy * dy);
-        const scale = newDist / pinchStartDistance.current;
-
-        const midPoint = {
-          x: (pointers[0].x + pointers[1].x) / 2,
-          y: (pointers[0].y + pointers[1].y) / 2,
-        };
-        const worldPos = getScreenToWorldCoordinates(midPoint.x, midPoint.y);
-
-        const newZoom = Math.max(
-          0.1,
-          Math.min(pinchStartZoom.current * scale, 20)
-        );
-
-        const newPanX = midPoint.x - worldPos.x * newZoom;
-        const newPanY = midPoint.y - worldPos.y * newZoom;
-
-        setZoom(newZoom);
-        setPanOffset({ x: newPanX, y: newPanY });
-
-        return;
-      }
 
       if (
         gestureState.current === "panning" &&
@@ -654,15 +632,7 @@ const DrawingCanvas: React.FC = () => {
       (e.target as HTMLDivElement).releasePointerCapture(e.pointerId);
       activePointers.current.delete(e.pointerId);
 
-      if (
-        gestureState.current === "pinching" &&
-        activePointers.current.size < 2
-      ) {
-        gestureState.current = null;
-        pinchStartDistance.current = 0;
-      }
-
-      if (activePointers.current.size < 1) {
+      if (activePointers.current.size < 1) { // Only handle single pointer events for drawing/panning
         if (gestureState.current === "drawing" && localStroke.current.type) {
           const isShapeTool =
             drawingTool === "rectangle" ||
@@ -714,6 +684,7 @@ const DrawingCanvas: React.FC = () => {
     >
       <StyledCanvas ref={mainCanvasRef} />
       <StyledCanvas ref={bufferCanvasRef} />
+      <PerformanceMonitor />
     </CanvasContainer>
   );
 };

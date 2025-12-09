@@ -1,5 +1,5 @@
 
-var InkEngine = (() => {
+var Module = (() => {
   var _scriptName = import.meta.url;
   
   return (
@@ -13,4 +13,4 @@ var Module=moduleArg;var readyPromiseResolve,readyPromiseReject;var readyPromise
 }
 );
 })();
-export default InkEngine;
+export default Module;

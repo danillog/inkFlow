@@ -45,6 +45,8 @@ export interface UIStore {
   isPomodoroFloating: boolean;
   pomodoroStartTime: number | null;
   pomodoroExpectedEndTime: number | null;
+  engineType: 'wasm' | 'js'; // Add engineType state
+  lastStrokePerformance: number | null; // Add performance state
   setSelectedColor: (color: string) => void;
   setDrawingTool: (tool: DrawingTool) => void;
   toggleDrawingInputMode: () => void;
@@ -59,6 +61,8 @@ export interface UIStore {
   togglePomodoroFloating: () => void;
   setPomodoroStartTime: (time: number | null) => void;
   setPomodoroExpectedEndTime: (time: number | null) => void;
+  setEngineType: (engine: 'wasm' | 'js') => void; // Add engineType setter
+  setLastStrokePerformance: (time: number | null) => void; // Add performance setter
 }
 
 export const createUIStore = () => create<UIStore>((set, get) => ({
@@ -78,6 +82,8 @@ export const createUIStore = () => create<UIStore>((set, get) => ({
   isPomodoroFloating: false,
   pomodoroStartTime: null,
   pomodoroExpectedEndTime: null,
+  engineType: 'wasm', // Default engine is wasm
+  lastStrokePerformance: null, // Default performance
   setSelectedColor: (color) => set({ selectedColor: color }),
   setDrawingTool: (tool) => set({ drawingTool: tool }),
   toggleDrawingInputMode: () => set((state) => ({ drawingInputMode: state.drawingInputMode === 'pen' ? 'touch' : 'pen' })),
@@ -95,6 +101,8 @@ export const createUIStore = () => create<UIStore>((set, get) => ({
   togglePomodoroFloating: () => set((state) => ({ isPomodoroFloating: !state.isPomodoroFloating })),
   setPomodoroStartTime: (time) => set({ pomodoroStartTime: time }),
   setPomodoroExpectedEndTime: (time) => set({ pomodoroExpectedEndTime: time }),
+  setEngineType: (engine) => set({ engineType: engine, lastStrokePerformance: null }), // Reset performance on engine change
+  setLastStrokePerformance: (time) => set({ lastStrokePerformance: time }), // Implement performance setter
 }));
 
 export const useUIStore: UseBoundStore<StoreApi<UIStore>> = createUIStore();
