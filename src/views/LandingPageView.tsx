@@ -8,12 +8,6 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-`;
-
 const PageContainer = styled.div`
   background-color: #0d1117;
   color: #c9d1d9;
