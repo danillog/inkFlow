@@ -697,6 +697,8 @@ const DrawingCanvas: React.FC = () => {
     ]
   );
 
+  const lastAwarenessUpdate = useRef<number>(0);
+
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -829,7 +831,13 @@ const DrawingCanvas: React.FC = () => {
         }
         if (updatedStroke) {
           localStroke.current = updatedStroke;
-          awareness()?.setLocalStateField("drawing", updatedStroke);
+          
+          // THROTTLE AWARENESS UPDATES: Max once every 32ms
+          const now = Date.now();
+          if (now - lastAwarenessUpdate.current > 32) {
+              awareness()?.setLocalStateField("drawing", updatedStroke);
+              lastAwarenessUpdate.current = now;
+          }
         }
       }
     },
