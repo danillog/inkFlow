@@ -1,10 +1,11 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled, { ThemeProvider } from "styled-components";
 import DrawingCanvas from "../components/DrawingCanvas";
 import TaskStack from "../components/TaskStack";
 import QuickCapture from "../components/QuickCapture";
 import DrawingToolbar from "../components/DrawingToolbar";
 import { db, type Task, type DrawingStroke } from "../lib/db";
+import { shallow } from 'zustand/shallow';
 import { useTaskStore } from "../store/taskStore";
 import { useUIStore } from "../store/uiStore";
 import type { lightTheme } from "../store/uiStore";
@@ -207,8 +208,7 @@ const BlackBoxViewContent: React.FC = () => {
   const [syncRoomName, setSyncRoomName] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
-  const taskStoreRehydrate = useTaskStore.persist.rehydrate;
-  const setCurrentView = useTaskStore((state) => state.setCurrentView);
+  const { setTasks, setCurrentView } = useTaskStore.getState();
   const peerCount = useSyncStore((state) => state.peerCount);
   const { theme, toggleTheme, isTaskStackOpen, toggleTaskStack } = useUIStore();
 
@@ -289,7 +289,7 @@ const BlackBoxViewContent: React.FC = () => {
         importedData.drawingStrokes as DrawingStroke[]
       );
 
-      taskStoreRehydrate();
+      setTasks(importedData.tasks);
       useTaskStore.getState().refreshCanvas();
 
       alert(t("alerts.import_success"));

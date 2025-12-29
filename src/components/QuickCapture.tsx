@@ -47,11 +47,11 @@ const CategorySelector = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
-const CategoryButton = styled.button<{ active: boolean }>`
+const CategoryButton = styled.button<{ $active: boolean }>`
   padding: 0.5rem 1rem;
   border-radius: 16px;
   border: none;
-  background-color: ${({ active }) => (active ? '#238636' : 'transparent')};
+  background-color: ${({ $active }) => ($active ? '#238636' : 'transparent')};
   color: #C9D1D9;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
@@ -59,7 +59,7 @@ const CategoryButton = styled.button<{ active: boolean }>`
   transition: background-color 0.2s ease-in-out;
 
   &:hover {
-    background-color: ${({ active }) => (active ? '#238636' : 'rgba(255, 255, 255, 0.1)')};
+    background-color: ${({ $active }) => ($active ? '#238636' : 'rgba(255, 255, 255, 0.1)')};
   }
 `;
 
@@ -86,13 +86,13 @@ const QuickCapture: React.FC = () => {
       />
       <CategorySelector>
         <CategoryButton
-          active={category === 'personal'}
+          $active={category === 'personal'}
           onClick={() => setCategory('personal')}
         >
           Personal
         </CategoryButton>
         <CategoryButton
-          active={category === 'work'}
+          $active={category === 'work'}
           onClick={() => setCategory('work')}
         >
           Work

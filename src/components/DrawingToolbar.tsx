@@ -6,8 +6,6 @@ import { useTranslation } from "react-i18next";
 import ColorPalette from "./ColorPalette";
 import EngineSwitch from "./EngineSwitch";
 
-
-
 const tools: { name: DrawingTool; icon: string }[] = [
   { name: "pen", icon: "✍️" },
   { name: "rectangle", icon: "▭" },
@@ -17,41 +15,11 @@ const tools: { name: DrawingTool; icon: string }[] = [
   { name: "eraser", icon: "🧼" },
 ];
 
-const DrawingToolbar: React.FC = () => {
-  const {
-    drawingTool,
-    setDrawingTool,
-    shapeText,
-    setShapeText,
-    drawingInputMode,
-    toggleDrawingInputMode,
-    selectedColor,
-    colors,
-  } = useUIStore();
-  const { t } = useTranslation();
-  const [isColorPaletteOpen, setIsColorPaletteOpen] = useState(false);
-
-  const isShapeTool =
-    drawingTool === "rectangle" ||
-    drawingTool === "circle" ||
-    drawingTool === "triangle";
-
-  const handleUndo = () => {
-    if (!awareness) return;
-    const strokes = yStrokes.toArray();
-    for (let i = strokes.length - 1; i >= 0; i--) {
-      if (strokes[i].clientID === awareness.clientID) {
-        yStrokes.delete(i, 1);
-        return;
-      }
-    }
-  };
-  
-  const ToolbarContainer = styled.div`
+const ToolbarContainer = styled.div`
   position: absolute;
   top: 20px;
   left: 20px;
-  background-color: ${colors.surface};
+  background-color: ${({ theme }) => theme.surface};
   padding: 8px;
   border-radius: 8px;
   display: flex;
@@ -130,9 +98,9 @@ const InputContainer = styled.div`
 `;
 
 const SymbolInput = styled.input`
-  background-color: ${colors.background};
-  color: ${colors.text};
-  border: 1px solid ${colors.surface};
+  background-color: ${({ theme }) => theme.background};
+  color: ${({ theme }) => theme.text};
+  border: 1px solid ${({ theme }) => theme.surface};
   border-radius: 6px;
   width: 150px;
   height: 40px;
@@ -143,7 +111,7 @@ const SymbolInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${colors.primary};
+    border-color: ${({ theme }) => theme.primary};
   }
 `;
 
@@ -161,15 +129,46 @@ const PaletteContainerWrapper = styled.div`
   }
 `;
 
+const DrawingToolbar: React.FC = () => {
+  const {
+    drawingTool,
+    setDrawingTool,
+    shapeText,
+    setShapeText,
+    drawingInputMode,
+    toggleDrawingInputMode,
+    selectedColor,
+    colors,
+  } = useUIStore();
+  const { t } = useTranslation();
+  const [isColorPaletteOpen, setIsColorPaletteOpen] = useState(false);
+
+  const isShapeTool =
+    drawingTool === "rectangle" ||
+    drawingTool === "circle" ||
+    drawingTool === "triangle";
+
+  const handleUndo = () => {
+    if (!awareness) return;
+    const strokes = yStrokes().toArray();
+    for (let i = strokes.length - 1; i >= 0; i--) {
+      if (strokes[i].clientID === awareness().clientID) {
+        yStrokes().delete(i, 1);
+        return;
+      }
+    }
+  };
+  
   return (
     <>
-      <ToolbarContainer>
+      <ToolbarContainer theme={colors}>
         {tools.map((tool) => (
           <ToolButton
             key={tool.name}
             $isSelected={drawingTool === tool.name}
             onClick={() => setDrawingTool(tool.name)}
             title={tool.name.charAt(0).toUpperCase() + tool.name.slice(1)}
+            theme={colors}
           >
             {tool.icon}
           </ToolButton>
@@ -179,6 +178,7 @@ const PaletteContainerWrapper = styled.div`
           $isSelected={false}
           color={selectedColor}
           onClick={() => setIsColorPaletteOpen(!isColorPaletteOpen)}
+          theme={colors}
         />
         {isColorPaletteOpen && (
           <PaletteContainerWrapper>
@@ -186,7 +186,7 @@ const PaletteContainerWrapper = styled.div`
           </PaletteContainerWrapper>
         )}
         <Separator />
-        <ToolButton onClick={handleUndo} $isSelected={false} title="Undo">
+        <ToolButton onClick={handleUndo} $isSelected={false} title="Undo" theme={colors}>
           ↩️
         </ToolButton>
         <Separator />
@@ -200,6 +200,7 @@ const PaletteContainerWrapper = styled.div`
               ? t("toolbar.pen_mode")
               : t("toolbar.touch_mode")
           }
+          theme={colors}
         >
           {drawingInputMode === "pen" ? "🖊️" : "👆"}
         </ToolButton>
@@ -212,6 +213,7 @@ const PaletteContainerWrapper = styled.div`
             onChange={(e) => setShapeText(e.target.value)}
             maxLength={100}
             placeholder="text..."
+            theme={colors}
           />
         </InputContainer>
       )}

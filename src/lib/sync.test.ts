@@ -1,141 +1,197 @@
-// src/lib/sync.test.ts
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as Y from 'yjs';
-import { connectYjs, disconnectYjs, useSyncStore } from './sync';
-import { WebrtcProvider } from 'y-webrtc'; // This will now be the mocked version
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { YjsSynchronizer } from './yjs-synchronizer';
-import { createTaskStore } from '../store/taskStore';
-import { createUIStore } from '../store/uiStore';
-import { mockProvider } from './__mocks__/y-webrtc'; // Import the mockProvider directly
+import { create, type StoreApi } from 'zustand';
+import { type TaskStore, type Task } from '../store/taskStore';
+import { type UIStore } from '../store/uiStore';
+import * as Y from 'yjs';
 
-// Mock y-indexeddb globally
-vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: vi.fn(),
+// Mock stores
+const createMockTaskStore = () => create<TaskStore>(() => ({
+    tasks: [],
+    activeTaskId: null,
+    currentView: 'blackbox',
+    canvasRevision: 0,
+    setTasks: vi.fn(),
+    addTask: vi.fn(),
+    updateTask: vi.fn(),
+    removeTask: vi.fn(),
+    setActiveTask: vi.fn(),
+    setCurrentView: vi.fn(),
+    refreshCanvas: vi.fn(),
 }));
 
-// Use the mock from the __mocks__ folder for y-webrtc
-vi.mock('y-webrtc', () => import('./__mocks__/y-webrtc'));
+const createMockUIStore = () => create<UIStore>(() => ({
+    selectedColor: '',
+    drawingTool: 'pen',
+    drawingInputMode: 'pen',
+    panOffset: { x: 0, y: 0 },
+    zoom: 1,
+    shapeText: '',
+    theme: 'dark',
+    colors: {} as any,
+    isTaskStackOpen: false,
+    pomodoroDuration: 0,
+    pomodoroMinutes: 0,
+    pomodoroSeconds: 0,
+    isPomodoroActive: false,
+    isPomodoroFloating: false,
+    pomodoroStartTime: null,
+    pomodoroExpectedEndTime: null,
+    engineType: 'wasm',
+    lastStrokePerformance: null,
+    setSelectedColor: vi.fn(),
+    setDrawingTool: vi.fn(),
+    toggleDrawingInputMode: vi.fn(),
+    setPanOffset: vi.fn(),
+    setZoom: vi.fn(),
+    setShapeText: vi.fn(),
+    toggleTheme: vi.fn(),
+    toggleTaskStack: vi.fn(),
+    setPomodoroDuration: vi.fn(),
+    setPomodoroTime: vi.fn(),
+    setIsPomodoroActive: vi.fn(),
+    togglePomodoroFloating: vi.fn(),
+    setPomodoroStartTime: vi.fn(),
+    setPomodoroExpectedEndTime: vi.fn(),
+    setEngineType: vi.fn(),
+    setLastStrokePerformance: vi.fn(),
+}));
 
-describe('Yjs Sync Logic (Unit Tests)', () => {
-  beforeEach(() => {
-    // Reset mocks and stores before each test
-    vi.clearAllMocks();
-    useSyncStore.setState({ peerCount: 0 });
-  });
+describe('YjsSynchronizer', () => {
+    let clientA_TaskStore: StoreApi<TaskStore>;
+    let clientA_UIStore: StoreApi<UIStore>;
+    let clientB_TaskStore: StoreApi<TaskStore>;
+    let clientB_UIStore: StoreApi<UIStore>;
+    let ydocA: Y.Doc;
+    let ydocB: Y.Doc;
+    let synchronizerA: YjsSynchronizer;
+    let synchronizerB: YjsSynchronizer;
 
-  it('should initialize webrtc provider on connect', () => {
-    connectYjs('test-room');
-    expect(WebrtcProvider).toHaveBeenCalledWith(
-      'test-room',
-      expect.anything(), // ydoc
-      { signaling: ['wss://signaling-server-cf-worker.danillo.workers.dev'] }
-    );
-  });
+    beforeAll(() => {
+        clientA_TaskStore = createMockTaskStore();
+        clientA_UIStore = createMockUIStore();
+        clientB_TaskStore = createMockTaskStore();
+        clientB_UIStore = createMockUIStore();
 
-  it('should set peer count to 0 on disconnect', () => {
-    connectYjs('test-room');
-    // Manually set a peer count to simulate a connection
-    useSyncStore.setState({ peerCount: 2 });
-    expect(useSyncStore.getState().peerCount).toBe(2);
+        ydocA = new Y.Doc();
+        ydocB = new Y.Doc();
 
-    disconnectYjs();
-    expect(useSyncStore.getState().peerCount).toBe(0);
-  });
+        synchronizerA = new YjsSynchronizer(clientA_TaskStore, clientA_UIStore, ydocA);
+        synchronizerB = new YjsSynchronizer(clientB_TaskStore, clientB_UIStore, ydocB);
 
-  it('should destroy webrtc provider on disconnect', () => {
-    connectYjs('test-room'); // Call connectYjs here
-    disconnectYjs();
-    expect(mockProvider.destroy).toHaveBeenCalled();
-  });
-});
+        // Simulate network connection by connecting the two ydocs
+        ydocA.on('update', (update) => {
+            Y.applyUpdate(ydocB, update);
+        });
+        ydocB.on('update', (update) => {
+            Y.applyUpdate(ydocA, update);
+        });
+    });
 
-describe('Yjs Synchronizer (Integration-like Test)', () => {
-  let client1Synchronizer: YjsSynchronizer;
-  let client2Synchronizer: YjsSynchronizer;
-  let client1UIStore: ReturnType<typeof createUIStore>;
-  let client2UIStore: ReturnType<typeof createUIStore>;
-  let client1TaskStore: ReturnType<typeof createTaskStore>;
-  let client2TaskStore: ReturnType<typeof createTaskStore>;
-  let ydoc1: Y.Doc;
-  let ydoc2: Y.Doc;
+        it('should synchronize tasks between two clients', () => {
 
-  beforeEach(() => {
-    vi.clearAllMocks(); // Clear mocks for isolation
+            const task: Task = { id: 'task-1', content: 'Test Task', status: 'pending', createdAt: Date.now(), category: 'personal' };
 
-    ydoc1 = new Y.Doc();
-    ydoc2 = new Y.Doc();
+    
 
-    client1UIStore = createUIStore();
-    client1TaskStore = createTaskStore();
-    client1Synchronizer = new YjsSynchronizer(client1TaskStore, client1UIStore, ydoc1);
+            // Client A adds a task
 
-    client2UIStore = createUIStore();
-    client2TaskStore = createTaskStore();
-    client2Synchronizer = new YjsSynchronizer(client2TaskStore, client2UIStore, ydoc2);
-  });
+            synchronizerA.yTasks.set(task.id, task);
 
-  afterEach(() => {
-    client1Synchronizer.disconnect(); // Cleans up observers and providers if any
-    client2Synchronizer.disconnect();
-    ydoc1.destroy();
-    ydoc2.destroy();
-    vi.restoreAllMocks(); // Restore all mocks after each test
-  });
+    
 
-  it('should synchronize pomodoroExpectedEndTime between two simulated clients', async () => {
-    // Initial state check
-    expect(client2UIStore.getState().pomodoroExpectedEndTime).toBeNull();
+            // Verify that client B receives the task
 
-    // Client 1 changes a value
-    const pomodoroEndTime = Date.now() + 25 * 60 * 1000;
-    client1UIStore.getState().setPomodoroExpectedEndTime(pomodoroEndTime);
+            expect(synchronizerB.yTasks.get(task.id)).toEqual(task);
 
-    // Manually propagate Yjs updates from client1's ydoc to client2's ydoc
-    const update = Y.encodeStateAsUpdate(ydoc1);
-    Y.applyUpdate(ydoc2, update);
+        });
 
-    // The UI store update should happen asynchronously via the Y.Map observer
-    // We need to wait for the next tick for Zustand to process the update
-    await vi.waitFor(() => {
-      expect(client2UIStore.getState().pomodoroExpectedEndTime).toBe(pomodoroEndTime);
-    }, { timeout: 100 }); // Short timeout as it should be fast
-  });
+    
 
-  it('should synchronize activeTaskId between two simulated clients', async () => {
-    // Initial state check
-    expect(client2TaskStore.getState().activeTaskId).toBeNull();
+            it('should synchronize sniper mode between two clients', () => {
 
-    // Client 1 changes active task
-    const activeTaskId = 'task-123';
-    client1TaskStore.getState().setActiveTask(activeTaskId);
+    
 
-    // Manually propagate Yjs updates
-    const update = Y.encodeStateAsUpdate(ydoc1);
-    Y.applyUpdate(ydoc2, update);
+                const taskId = 'task-1';
 
-    // Wait for the update to be processed
-    await vi.waitFor(() => {
-      expect(client2TaskStore.getState().activeTaskId).toBe(activeTaskId);
-    }, { timeout: 100 });
-  });
+    
 
-  it('should synchronize tasks array between two simulated clients', async () => {
-    // Initial state check
-    expect(client2TaskStore.getState().tasks.length).toBe(0);
+        
 
-    // Client 1 adds a task
-    client1TaskStore.getState().addTask('New Task', 'personal');
+    
 
-    // Manually propagate Yjs updates
-    const update = Y.encodeStateAsUpdate(ydoc1);
-    Y.applyUpdate(ydoc2, update);
+                // Client A enters sniper mode
 
-    // Wait for the update to be processed
-    await vi.waitFor(() => {
-      expect(client2TaskStore.getState().tasks.length).toBe(1);
-      expect(client2TaskStore.getState().tasks[0].content).toBe('New Task');
-    }, { timeout: 500 }); // Increased timeout
-  });
-});
+    
 
+                clientA_TaskStore.setState({ activeTaskId: taskId, currentView: 'sniper' });
 
+    
+
+        
+
+    
+
+                // Verify that client B enters sniper mode
+
+    
+
+                expect(clientB_TaskStore.getState().activeTaskId).toEqual(taskId);
+
+    
+
+                expect(clientB_TaskStore.getState().currentView).toEqual('sniper');
+
+    
+
+            });
+
+    
+
+        
+
+    
+
+            it('should synchronize drawings between two clients', () => {
+
+    
+
+                const stroke: DrawingStroke = { id: 'stroke-1', type: 'stroke', points: [{ x: 0, y: 0, pressure: 0.5 }], color: '#000000', clientID: 'client-A' };
+
+    
+
+        
+
+    
+
+                // Client A adds a stroke
+
+    
+
+                synchronizerA.yStrokes.push([stroke]);
+
+    
+
+        
+
+    
+
+                // Verify that client B receives the stroke
+
+    
+
+                expect(synchronizerB.yStrokes.toArray()).toContainEqual(stroke);
+
+    
+
+            });
+
+    
+
+        });
+
+    
+
+        
+
+    

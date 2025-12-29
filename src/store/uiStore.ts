@@ -1,4 +1,5 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
+import { yUiState } from '../lib/sync';
 
 export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'pan' | 'eraser' | 'triangle';
 export type DrawingInputMode = 'pen' | 'touch';
@@ -45,8 +46,8 @@ export interface UIStore {
   isPomodoroFloating: boolean;
   pomodoroStartTime: number | null;
   pomodoroExpectedEndTime: number | null;
-  engineType: 'wasm' | 'js'; // Add engineType state
-  lastStrokePerformance: number | null; // Add performance state
+  engineType: 'wasm' | 'js';
+  lastStrokePerformance: number | null;
   setSelectedColor: (color: string) => void;
   setDrawingTool: (tool: DrawingTool) => void;
   toggleDrawingInputMode: () => void;
@@ -61,8 +62,8 @@ export interface UIStore {
   togglePomodoroFloating: () => void;
   setPomodoroStartTime: (time: number | null) => void;
   setPomodoroExpectedEndTime: (time: number | null) => void;
-  setEngineType: (engine: 'wasm' | 'js') => void; // Add engineType setter
-  setLastStrokePerformance: (time: number | null) => void; // Add performance setter
+  setEngineType: (engine: 'wasm' | 'js') => void;
+  setLastStrokePerformance: (time: number | null) => void;
 }
 
 export const createUIStore = () => create<UIStore>((set, get) => ({
@@ -82,8 +83,8 @@ export const createUIStore = () => create<UIStore>((set, get) => ({
   isPomodoroFloating: false,
   pomodoroStartTime: null,
   pomodoroExpectedEndTime: null,
-  engineType: 'wasm', // Default engine is wasm
-  lastStrokePerformance: null, // Default performance
+  engineType: 'wasm',
+  lastStrokePerformance: null,
   setSelectedColor: (color) => set({ selectedColor: color }),
   setDrawingTool: (tool) => set({ drawingTool: tool }),
   toggleDrawingInputMode: () => set((state) => ({ drawingInputMode: state.drawingInputMode === 'pen' ? 'touch' : 'pen' })),
@@ -95,15 +96,26 @@ export const createUIStore = () => create<UIStore>((set, get) => ({
     set({ theme: newTheme, colors: newTheme === 'dark' ? darkTheme : lightTheme });
   },
   toggleTaskStack: () => set((state) => ({ isTaskStackOpen: !state.isTaskStackOpen })),
-  setPomodoroDuration: (duration) => set({ pomodoroDuration: duration, pomodoroMinutes: duration, pomodoroSeconds: 0 }),
+  setPomodoroDuration: (duration) => {
+    yUiState().set('pomodoroDuration', duration);
+    set({ pomodoroDuration: duration, pomodoroMinutes: duration, pomodoroSeconds: 0 });
+  },
   setPomodoroTime: (minutes, seconds) => set({ pomodoroMinutes: minutes, pomodoroSeconds: seconds }),
-  setIsPomodoroActive: (isActive) => set({ isPomodoroActive: isActive }),
+  setIsPomodoroActive: (isActive) => {
+    yUiState().set('isPomodoroActive', isActive);
+    set({ isPomodoroActive: isActive });
+  },
   togglePomodoroFloating: () => set((state) => ({ isPomodoroFloating: !state.isPomodoroFloating })),
-  setPomodoroStartTime: (time) => set({ pomodoroStartTime: time }),
-  setPomodoroExpectedEndTime: (time) => set({ pomodoroExpectedEndTime: time }),
-  setEngineType: (engine) => set({ engineType: engine, lastStrokePerformance: null }), // Reset performance on engine change
-  setLastStrokePerformance: (time) => set({ lastStrokePerformance: time }), // Implement performance setter
+  setPomodoroStartTime: (time) => {
+    yUiState().set('pomodoroStartTime', time);
+    set({ pomodoroStartTime: time });
+  },
+  setPomodoroExpectedEndTime: (time) => {
+    yUiState().set('pomodoroExpectedEndTime', time);
+    set({ pomodoroExpectedEndTime: time });
+  },
+  setEngineType: (engine) => set({ engineType: engine, lastStrokePerformance: null }),
+  setLastStrokePerformance: (time) => set({ lastStrokePerformance: time }),
 }));
 
 export const useUIStore: UseBoundStore<StoreApi<UIStore>> = createUIStore();
-

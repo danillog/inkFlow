@@ -131,13 +131,14 @@ const RealityCheckView: React.FC = () => {
   }, [tasksCompletedToday]);
 
   const handleEndDay = async () => {
-    if (confirm('Encerrar o dia removerá todas as tarefas, desenhos e notas. Deseja continuar?')) {
-      await db.tasks.clear();
-      await db.drawingStrokes.clear();
+    if (confirm('Ending the day will clear all tasks, drawings, and notes across all synchronized devices. Do you wish to continue?')) {
+      const { yTasks, yStrokes } = await import('../lib/sync');
       
-      useTaskStore.setState({ tasks: [], activeTaskId: null });
-      useTaskStore.getState().refreshCanvas();
+      // Clear Yjs shared types to propagate deletion to peers
+      yTasks().clear();
+      yStrokes().delete(0, yStrokes().length);
       
+      // Local cleanup will happen via Yjs observers in YjsSynchronizer
       setCurrentView('blackbox');
     }
   };

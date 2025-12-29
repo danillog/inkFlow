@@ -54,6 +54,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "ink-engine": path.resolve(__dirname, "src/wasm-modules/ink_engine.js"),
+      "yjs": path.resolve(__dirname, "node_modules/yjs/dist/yjs.mjs"),
     },
   },
   test: {
@@ -61,5 +62,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/tests/setup.ts',
     include: ['**/*.{test,spec,integration.test}.{ts,tsx}'],
+    deps: {
+      inline: [/^(?!.*vitest).*$/],
+    },
   },
 });

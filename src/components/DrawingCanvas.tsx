@@ -19,9 +19,9 @@ const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
       case "pan":
         return "grab";
       case "eraser":
-      case "circle": // Added circle to be eraser-like if using touch
-      case "rectangle": // Added rectangle to be eraser-like if using touch
-      case "triangle": // Added triangle to be eraser-like if using touch
+      case "circle":
+      case "rectangle":
+      case "triangle":
         return "cell";
       default:
         return "crosshair";
@@ -69,7 +69,6 @@ const DrawingCanvas: React.FC = () => {
   const colors = useUIStore((state) => state.colors);
   const engineType = useUIStore((state) => state.engineType);
   const setLastStrokePerformance = useUIStore((state) => state.setLastStrokePerformance);
-
 
   const existingStrokes = useRef<DrawingStroke[]>([]);
   const remoteStrokes = useRef(new Map<number, { drawing?: DrawingStroke }>());
@@ -158,19 +157,14 @@ const DrawingCanvas: React.FC = () => {
 
     const words = text.split(" ");
     const lines = [];
-    let fontSize = Math.min(maxHeight, maxWidth / 2); // Start with a reasonable guess
+    let fontSize = Math.min(maxHeight, maxWidth / 2);
 
-    ctx.font = `${
-      fontSize / zoom
-    }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
+    ctx.font = `${fontSize / zoom}px 'Inter', sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Reduce font size until it fits
     while(fontSize > 1) {
-      const testFont = `${
-        fontSize / zoom
-      }px 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji'`;
+      const testFont = `${fontSize / zoom}px 'Inter', sans-serif`;
       ctx.font = testFont;
       const testLines = [];
       let currentLine = '';
@@ -191,10 +185,10 @@ const DrawingCanvas: React.FC = () => {
         break;
       }
 
-      fontSize -= 2; // Reduce font size and try again
+      fontSize -= 2;
     }
     
-    if(!lines.length) return; // Cant fit text
+    if(!lines.length) return;
 
     const lineHeight = fontSize / zoom * 1.2;
     const totalTextHeight = lines.length * lineHeight;
@@ -215,7 +209,6 @@ const DrawingCanvas: React.FC = () => {
         case "stroke": {
           const t0 = performance.now();
           
-          // Conditionally select the engine
           const processed =
             engineType === "wasm"
               ? processStroke(shape.points)
@@ -229,7 +222,6 @@ const DrawingCanvas: React.FC = () => {
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
 
-          // To draw a line with variable width, we must stroke each segment individually.
           for (let i = 0; i < processed.length - 1; i++) {
             const p1 = processed[i];
             const p2 = processed[i + 1];
@@ -281,7 +273,7 @@ const DrawingCanvas: React.FC = () => {
     getTransformedContext(ctx);
     existingStrokes.current.forEach((shape) => drawShape(ctx, shape));
     ctx.restore();
-  }, [drawShape, getTransformedContext]); // Changed dependencies
+  }, [drawShape, getTransformedContext]);
 
   const getStrokeUnderPoint = useCallback(
     (point: { x: number; y: number }): string | null => {
@@ -322,11 +314,11 @@ const DrawingCanvas: React.FC = () => {
     (point: { x: number; y: number }) => {
       const strokeIdToDelete = getStrokeUnderPoint(point);
       if (strokeIdToDelete) {
-        const indexToDelete = yStrokes
+        const indexToDelete = yStrokes()
           .toArray()
           .findIndex((s) => s.id === strokeIdToDelete);
         if (indexToDelete > -1) {
-          yStrokes.delete(indexToDelete, 1);
+          yStrokes().delete(indexToDelete, 1);
         }
       }
     },
@@ -378,14 +370,28 @@ const DrawingCanvas: React.FC = () => {
     if (!isLoaded) return;
 
     const handleObserve = () => {
-      existingStrokes.current = yStrokes.toArray();
+      existingStrokes.current = yStrokes().toArray();
       redrawAllShapes();
     };
 
-    yStrokes.observe(handleObserve);
+    yStrokes().observe(handleObserve);
+
+    const handleAwarenessChange = () => {
+      if (!awareness()) return;
+      const states = awareness().getStates();
+      remoteStrokes.current.clear();
+      states.forEach((state, clientID) => {
+        if (clientID !== awareness().clientID) {
+          remoteStrokes.current.set(clientID, state);
+        }
+      });
+    };
+
+    awareness()?.on('change', handleAwarenessChange);
 
     return () => {
-      yStrokes.unobserve(handleObserve);
+      yStrokes().unobserve(handleObserve);
+      awareness()?.off('change', handleAwarenessChange);
     };
   }, [isLoaded, redrawAllShapes]);
 
@@ -396,7 +402,7 @@ const DrawingCanvas: React.FC = () => {
         .where("taskId")
         .equals(activeTaskId || "")
         .toArray();
-      const yjsStrokesArr = yStrokes.toArray();
+      const yjsStrokesArr = yStrokes().toArray();
       const allStrokesMap = new Map<string, DrawingStroke>();
       localStrokes.forEach((s) => allStrokesMap.set(s.id, s));
       yjsStrokesArr.forEach((s) => allStrokesMap.set(s.id, s));
@@ -443,7 +449,7 @@ const DrawingCanvas: React.FC = () => {
       (e.target as HTMLDivElement).setPointerCapture(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (activePointers.current.size === 1) { // Only handle single pointer events for drawing/panning
+      if (activePointers.current.size === 1) {
         const { drawingInputMode } = useUIStore.getState();
         if (
           drawingTool !== "pan" &&
@@ -465,9 +471,9 @@ const DrawingCanvas: React.FC = () => {
 
         if (gestureState.current === "drawing") {
           const baseStroke = {
-            id: `stroke-${awareness?.clientID}-${Date.now()}`,
+            id: `stroke-${awareness()?.clientID}-${Date.now()}`,
             color: selectedColor,
-            clientID: awareness?.clientID,
+            clientID: awareness()?.clientID,
           };
 
           if (drawingTool === "pen") {
@@ -505,7 +511,7 @@ const DrawingCanvas: React.FC = () => {
             eraseAtPoint(point);
           }
           if (drawingTool !== "pan" && drawingTool !== "eraser") {
-            awareness?.setLocalStateField("drawing", localStroke.current);
+            awareness()?.setLocalStateField("drawing", localStroke.current);
           }
         }
       }
@@ -610,7 +616,7 @@ const DrawingCanvas: React.FC = () => {
         }
         if (updatedStroke) {
           localStroke.current = updatedStroke;
-          awareness?.setLocalStateField("drawing", updatedStroke);
+          awareness()?.setLocalStateField("drawing", updatedStroke);
         }
       }
     },
@@ -632,7 +638,7 @@ const DrawingCanvas: React.FC = () => {
       (e.target as HTMLDivElement).releasePointerCapture(e.pointerId);
       activePointers.current.delete(e.pointerId);
 
-      if (activePointers.current.size < 1) { // Only handle single pointer events for drawing/panning
+      if (activePointers.current.size < 1) {
         if (gestureState.current === "drawing" && localStroke.current.type) {
           const isShapeTool =
             drawingTool === "rectangle" ||
@@ -649,7 +655,7 @@ const DrawingCanvas: React.FC = () => {
               (!finalShape.points || finalShape.points.length < 2)
             )
           ) {
-            yStrokes.push([finalShape]);
+            yStrokes().push([finalShape]);
           }
         }
 
@@ -657,7 +663,7 @@ const DrawingCanvas: React.FC = () => {
         setIsDrawing(false);
         setStartPoint(null);
         localStroke.current = {};
-        awareness?.setLocalStateField("drawing", null);
+        awareness()?.setLocalStateField("drawing", null);
       }
     },
     [drawingTool, shapeText, awareness, yStrokes]

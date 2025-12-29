@@ -3,6 +3,7 @@ import { useTaskStore } from "../store/taskStore";
 import { useUIStore } from "../store/uiStore";
 import { type Task, type DrawingStroke } from "./db";
 import { create } from "zustand";
+import * as Y from 'yjs';
 
 import { YjsSynchronizer } from "./yjs-synchronizer";
 
@@ -16,10 +17,13 @@ export const useSyncStore = create<SyncState>((set) => ({
   setPeerCount: (count) => set({ peerCount: count }),
 }));
 
+let appSynchronizer: YjsSynchronizer;
 
-// Create a single instance of the YjsSynchronizer for the application
-const appSynchronizer = new YjsSynchronizer(useTaskStore, useUIStore);
-new IndexeddbPersistence("inkflow-yjs-persistence", appSynchronizer.ydoc);
+export const initSync = () => {
+  appSynchronizer = new YjsSynchronizer(useTaskStore, useUIStore);
+  new IndexeddbPersistence("inkflow-yjs-persistence", appSynchronizer.ydoc);
+};
+
 
 // Expose the connect/disconnect methods and Yjs shared types from the synchronizer
 export const connectYjs = (roomName: string) => {
@@ -37,12 +41,12 @@ export const disconnectYjs = () => {
   useSyncStore.getState().setPeerCount(0);
 };
 
-export const getYjsDoc = () => appSynchronizer.ydoc;
-export const yTasks = appSynchronizer.yTasks;
-export const yStrokes = appSynchronizer.yStrokes;
-export const yUiState = appSynchronizer.yUiState;
-export const awareness = appSynchronizer.awareness; // Note: This will be null initially
+export const getYjsDoc = (): Y.Doc => appSynchronizer.ydoc;
+export const yTasks = (): Y.Map<Task> => appSynchronizer.yTasks;
+export const yStrokes = (): Y.Array<DrawingStroke> => appSynchronizer.yStrokes;
+export const yUiState = (): Y.Map<any> => appSynchronizer.yUiState;
+export const awareness = () => appSynchronizer.awareness; // Note: This will be null initially
 
-export const getCurrentRoomName = () => appSynchronizer.currentRoomName;
+export const getCurrentRoomName = (): string | null => appSynchronizer.currentRoomName;
 
 export type { Task, DrawingStroke };

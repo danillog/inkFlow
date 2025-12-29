@@ -127,13 +127,13 @@ const FocusButton = styled.button`
   }
 `;
 
-const CategoryIndicator = styled.div<{ category?: Task["category"] }>`
+const CategoryIndicator = styled.div<{ $category?: Task["category"] }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
   margin-right: 0.5rem;
-  background-color: ${({ category }) =>
-    category === "work" ? "#238636" : "#388bfd"};
+  background-color: ${({ $category }) =>
+    $category === "work" ? "#238636" : "#388bfd"};
 `;
 
 const Checkbox = styled.input.attrs({ type: "checkbox" })`
@@ -206,7 +206,7 @@ const TaskStack: React.FC = () => {
       ) : (
         sortedTasks.map((task) => (
           <TaskCard key={task.id} draggable theme={colors}>
-            <CategoryIndicator category={task.category} />
+            <CategoryIndicator $category={task.category} />
             <TaskInfo>
               <Checkbox
                 checked={task.status === "completed"}

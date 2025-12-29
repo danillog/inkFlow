@@ -4,6 +4,8 @@ import DrawingCanvas from './DrawingCanvas';
 import DrawingToolbar from './DrawingToolbar';
 import TaskStack from './TaskStack';
 import QuickCapture from './QuickCapture';
+import SniperModeView from '../views/SniperModeView';
+import RealityCheckView from '../views/RealityCheckView';
 import { db, type Task, type DrawingStroke } from '../lib/db';
 import { useTaskStore } from '../store/taskStore';
 import { useUIStore } from '../store/uiStore';
@@ -37,10 +39,10 @@ const TabBar = styled.div`
   width: 100%;
 `;
 
-const TabButton = styled.button<{ active: boolean }>`
+const TabButton = styled.button<{ $active: boolean }>`
   background-color: transparent;
   border: none;
-  color: ${({ active }) => (active ? '#238636' : '#C9D1D9')};
+  color: ${({ $active }) => ($active ? '#238636' : '#C9D1D9')};
   font-size: 1rem;
   cursor: pointer;
   padding: 0.5rem 1rem;
@@ -155,7 +157,7 @@ const MobileLayoutContent: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [syncRoomName, setSyncRoomName] = useState('');
     const [isConnected, setIsConnected] = useState(false);
-    const taskStoreRehydrate = useTaskStore.persist.rehydrate;
+    const currentView = useTaskStore((state) => state.currentView);
     const setCurrentView = useTaskStore((state) => state.setCurrentView);
     const peerCount = useSyncStore((state) => state.peerCount);
     const { theme, toggleTheme } = useUIStore();
@@ -214,11 +216,21 @@ const MobileLayoutContent: React.FC = () => {
                 throw new Error(t('alerts.invalid_backup_file'));
             }
 
-            await db.tasks.clear();
-            await db.drawingStrokes.clear();
-            await db.tasks.bulkAdd(importedData.tasks as Task[]);
-            await db.drawingStrokes.bulkAdd(importedData.drawingStrokes as DrawingStroke[]);
-            taskStoreRehydrate();
+            const { yTasks, yStrokes } = await import('../lib/sync');
+
+            // Clear current data
+            yTasks().clear();
+            yStrokes().delete(0, yStrokes().length);
+
+            // Import new data
+            const tasks = importedData.tasks as Task[];
+            tasks.forEach(task => yTasks().set(task.id, task));
+            
+            const strokes = importedData.drawingStrokes as DrawingStroke[];
+            if (strokes.length > 0) {
+                yStrokes().push(strokes);
+            }
+
             useTaskStore.getState().refreshCanvas();
             alert(t('alerts.import_success'));
         } catch (error) {
@@ -257,6 +269,14 @@ const MobileLayoutContent: React.FC = () => {
         const peerText = t(peerCount <= 1 ? 'blackbox.peer_text_one' : 'blackbox.peer_text_other');
         return t('blackbox.status_online', { syncRoomName, peerCount, peerText });
     };
+
+    if (currentView === 'sniper') {
+      return <SniperModeView />;
+    }
+
+    if (currentView === 'realitycheck') {
+      return <RealityCheckView />;
+    }
 
   return (
     <MobileLayoutContainer>
@@ -314,13 +334,13 @@ const MobileLayoutContent: React.FC = () => {
         )}
       </TabContent>
       <TabBar>
-        <TabButton active={activeTab === 'Canvas'} onClick={() => setActiveTab('Canvas')}>
+        <TabButton $active={activeTab === 'Canvas'} onClick={() => setActiveTab('Canvas')}>
           Canvas
         </TabButton>
-        <TabButton active={activeTab === 'Tasks'} onClick={() => setActiveTab('Tasks')}>
+        <TabButton $active={activeTab === 'Tasks'} onClick={() => setActiveTab('Tasks')}>
           Tasks
         </TabButton>
-        <TabButton active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')}>
+        <TabButton $active={activeTab === 'Settings'} onClick={() => setActiveTab('Settings')}>
           Settings
         </TabButton>
       </TabBar>

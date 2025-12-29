@@ -3,6 +3,9 @@ set -e # Exit immediately if a command exits with a non-zero status.
 
 echo "Compiling C++ to WebAssembly..."
 
+source /home/danillo/emsdk/emsdk_env.sh
+
+
 # Get the directory of the script itself
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
