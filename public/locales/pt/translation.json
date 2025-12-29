@@ -1,50 +1,92 @@
 {
   "landing": {
-    "title": "Onde as Ideias Fluem e o Trabalho Acontece",
-    "subtitle": "O Anti-Todo List para Super-Pensadores.",
-    "cta": "Experimente o InkFlow (Não é necessário login)",
+    "title": "Onde Idéias Fluem e o Trabalho Acontece",
+    "subtitle": "A Anti-Lista de Tarefas para Pensadores Profundos.",
+    "cta": "Experimentar InkFlow (Sem Login)",
+    "new_features": {
+      "title": "Novidades no InkFlow v2.0",
+      "eisenhower": {
+        "title": "Matriz de Eisenhower",
+        "text": "Pare de adivinhar o que fazer a seguir. Arraste suas tarefas para os quatro quadrantes para priorizar urgência e importância."
+      },
+      "heatmap": {
+        "title": "Heatmap de Produtividade",
+        "text": "Visualize seu progresso ao longo do ano. Um registro persistente de suas sessões de foco e missões concluídas."
+      },
+      "qr_sync": {
+        "title": "Pareamento via QR Code",
+        "text": "Conecte seu tablet ou celular instantaneamente. Escaneie um código e seu canvas e tarefas sincronizam em tempo real."
+      },
+      "lasso": {
+        "title": "Ferramenta de Laço",
+        "text": "Seus desenhos agora ganham vida. Selecione, mova e reorganize seus traços com a nova ferramenta de seleção."
+      },
+      "magic_wand": {
+        "title": "Varinha Mágica (OCR)",
+        "text": "Converta escrita à mão em tarefas digitais usando IA. Escreva e veja se tornar dados instantaneamente."
+      }
+    },
+    "how_to_use": {
+      "title": "O Fluxo InkFlow",
+      "step1": {
+        "title": "1. Capturar (Blackbox)",
+        "text": "Descarregue seu cérebro no canvas infinito. Esboços, trechos de código ou notas brutas."
+      },
+      "step2": {
+        "title": "2. Priorizar",
+        "text": "Use a visualização de Eisenhower para decidir o que realmente importa agora."
+      },
+      "step3": {
+        "title": "3. Focar (Modo Sniper)",
+        "text": "Trave em uma única tarefa. O timer Pomodoro mantém sua disciplina."
+      },
+      "step4": {
+        "title": "4. Analisar (Reality Check)",
+        "text": "Encerre o dia revisando suas conquistas e vendo seu heatmap crescer."
+      }
+    },
     "benefits_over_paper": {
-      "title": "Por que o InkFlow é Melhor que o Papel",
+      "title": "Por que InkFlow é Melhor que Papel",
       "infinite_space": {
         "title": "Espaço Infinito",
-        "text": "Nunca fique sem espaço para suas ideias. Sua tela é ilimitada."
+        "text": "Nunca fique sem espaço para suas ideias. Seu canvas é ilimitado."
       },
       "collaboration": {
         "title": "Colaboração em Tempo Real",
-        "text": "Colabore em tempo real. Uma conexão ponto a ponto que funciona na maioria das redes, sem a necessidade de um servidor central."
+        "text": "Colabore em tempo real. Uma conexão peer-to-peer que funciona na maioria das redes, sem servidor central."
       },
       "non_destructive": {
-        "title": "Não Destrutivo & Editável",
-        "text": "Apague, mova e redimensione suas ideias sem deixar rastros. A perfeição está a apenas uma edição de distância."
+        "title": "Não Destrutivo e Editável",
+        "text": "Apague, mova e redimensione suas ideias sem deixar rastros. A perfeição está a apenas uma edição."
       },
       "integrated_tools": {
-        "title": "Kit de Ferramentas Tudo-em-Um",
-        "text": "Suas anotações, tarefas e temporizadores de foco estão todos em um único espaço de trabalho integrado."
+        "title": "Kit de Ferramentas Integrado",
+        "text": "Suas notas, tarefas e timers de foco estão em um espaço de trabalho único e fluido."
       },
       "eco_friendly": {
         "title": "Ecológico",
-        "text": "Salve árvores e reduza o desperdício. Seu espaço de trabalho digital é sua contribuição para um planeta mais verde."
+        "text": "Economize árvores e reduza desperdício. Seu espaço digital é sua contribuição para um planeta mais verde."
       }
     },
     "pain_section": {
-      "title": "A Dor: Paralisia por Análise",
-      "text": "Você é um criador. Um desenvolvedor. Sua mente gera ideias mais rápido do que você consegue anotá-las. Mas as ferramentas tradicionais te forçam a um ciclo vicioso: listas infinitas, backlogs assustadores e a procrastinação que vem com a sobrecarga. Cada nova ideia se torna uma dívida. A dopamina barata das redes sociais parece mais atraente do que encarar a montanha de tarefas que você mesmo criou."
+      "title": "A Dor: Paralisia de Análise",
+      "text": "Você é um criador. Um desenvolvedor. Sua mente gera ideias mais rápido do que você consegue anotar. Mas as ferramentas tradicionais te forçam a um ciclo vicioso: listas infinitas e a procrastinação que vem com a sobrecarga."
     },
     "solution_section": {
-      "title": "A Solução: Black Box ➔ Sniper Mode",
-      "text": "InkFlow quebra esse ciclo com um método de dois passos.<br/><br/><strong>1. Black Box:</strong> Um canvas infinito para capturar tudo — código, esboços, ideias — sem atrito. Sem julgamento. Apenas flua.<br/><br/><strong>2. Sniper Mode:</strong> Arraste UMA tarefa da sua pilha para o modo de foco total. Um timer Pomodoro te protege, e um canvas de contexto mantém as informações relevantes à mão. Nada mais existe. Apenas você e a sua missão."
+      "title": "A Solução: Engenharia de Fluxo",
+      "text": "O InkFlow quebra esse ciclo com um sistema de alta performance projetado para trabalho profundo. Combina a liberdade tátil do papel com a lógica da sincronização digital."
     },
     "engineering_section": {
-      "title": "Mostruário de Engenharia",
-      "intro": "InkFlow foi construído com performance e privacidade como pilares.",
+      "title": "Vitrine Técnica",
+      "intro": "O InkFlow foi construído com performance e privacidade como pilares.",
       "question": "\"Por que C++ para desenhar na web?\"",
-      "answer": "Para atingir latência zero. A engine de desenho é escrita em C++ e compilada para WebAssembly, garantindo que a sua caneta digital seja uma extensão do seu pensamento, não um obstáculo.",
+      "answer": "Para alcançar latência zero. O motor de desenho é escrito em C++ e compilado para WebAssembly, garantindo que sua caneta digital seja uma extensão do seu pensamento.",
       "tech_stack": {
         "engine": "Motor C++ Wasm",
         "arch": "Arquitetura Local-First",
         "frontend": "React & TypeScript",
         "db": "IndexedDB",
-        "sync": "Y.js (Sincronia P2P)"
+        "sync": "Y.js (P2P Sync)"
       },
       "explore": "Explore o código e a arquitetura no"
     }
@@ -56,7 +98,7 @@
   },
   "toolbar": {
     "pen_mode": "Apenas Caneta",
-    "touch_mode": "Caneta e Toque"
+    "touch_mode": "Caneta & Toque"
   },
   "blackbox": {
     "greeting": "Hora de organizar seus pensamentos.",
@@ -65,16 +107,16 @@
     "import": "Importar",
     "reality_check": "Reality Check",
     "change_theme": "Mudar para {{theme}}",
-    "collapse_tasks": "« Recolher Tasks",
-    "expand_tasks": "Expandir Tasks »",
+    "collapse_tasks": "« Recolher Tarefas",
+    "expand_tasks": "Expandir Tarefas »",
     "status": "Status: {{status}}",
-    "sync_room_placeholder": "Digite um nome secreto para a sala",
+    "sync_room_placeholder": "Nome secreto da sala",
     "generate": "Gerar",
     "disconnect": "Desconectar",
     "connect_sync": "Conectar Sync",
-    "sync_help": "Para sincronizar, outros dispositivos devem usar este mesmo Nome de Sala na mesma rede local. Qualquer pessoa com o nome da sala pode ver os dados.",
-    "peer_text_one": "participante",
-    "peer_text_other": "participantes",
+    "sync_help": "Para sincronizar, outros dispositivos devem usar este mesmo nome de sala na mesma rede local. Qualquer pessoa com o nome da sala pode ver os dados.",
+    "peer_text_one": "par",
+    "peer_text_other": "pares",
     "status_offline": "Offline ⚡",
     "status_online": "Online ({{syncRoomName}}) - {{peerCount}} {{peerText}}"
   },
@@ -85,10 +127,10 @@
     "remove": "X"
   },
   "alerts": {
-    "import_confirm": "Importar dados substituirá todos os seus dados atuais. Você tem certeza?",
+    "import_confirm": "Importar dados substituirá todos os seus dados atuais. Tem certeza?",
     "invalid_backup_file": "Formato de arquivo de backup inválido.",
     "import_success": "Dados importados com sucesso!",
-    "import_fail": "Falha ao importar dados. Verifique o console para detalhes. O arquivo pode estar corrompido ou em formato inválido.",
-    "sync_room_prompt": "Por favor, insira um nome para a sala de sincronização."
+    "import_fail": "Falha ao importar dados. Verifique o console para detalhes.",
+    "sync_room_prompt": "Por favor, digite um nome para a sala de sincronização."
   }
 }

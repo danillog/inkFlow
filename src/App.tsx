@@ -3,6 +3,7 @@ import styled, { createGlobalStyle } from 'styled-components';
 import BlackBoxView from './views/BlackBoxView';
 import SniperModeView from './views/SniperModeView';
 import RealityCheckView from './views/RealityCheckView';
+import EisenhowerView from './views/EisenhowerView';
 import LandingPageView from './views/LandingPageView';
 import { useTaskStore } from './store/taskStore';
 import { useState, useEffect } from 'react';
@@ -63,6 +64,8 @@ function MainApp() {
         return <SniperModeView />;
       case 'realitycheck':
         return <RealityCheckView />;
+      case 'eisenhower':
+        return <EisenhowerView />;
       case 'blackbox':
       default:
         return <BlackBoxView />;

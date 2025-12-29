@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import styled, { ThemeProvider } from "styled-components";
 import DrawingCanvas from "../components/DrawingCanvas";
 import TaskStack from "../components/TaskStack";
 import QuickCapture from "../components/QuickCapture";
 import DrawingToolbar from "../components/DrawingToolbar";
+import QRCodeModal from "../components/QRCodeModal";
 import { db, type Task, type DrawingStroke } from "../lib/db";
-import { shallow } from 'zustand/shallow';
 import { useTaskStore } from "../store/taskStore";
 import { useUIStore } from "../store/uiStore";
 import type { lightTheme } from "../store/uiStore";
@@ -208,6 +208,7 @@ const BlackBoxViewContent: React.FC = () => {
   const [syncRoomName, setSyncRoomName] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const { setTasks, setCurrentView } = useTaskStore.getState();
   const peerCount = useSyncStore((state) => state.peerCount);
   const { theme, toggleTheme, isTaskStackOpen, toggleTaskStack } = useUIStore();
@@ -217,9 +218,23 @@ const BlackBoxViewContent: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
+    // 1. Check if already connected
     if (getCurrentRoomName()) {
       setSyncRoomName(getCurrentRoomName()!);
       setIsConnected(true);
+      return;
+    }
+
+    // 2. Check for room parameter in URL
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room');
+    if (roomParam) {
+      const cleanRoom = roomParam.trim();
+      setSyncRoomName(cleanRoom);
+      connectYjs(cleanRoom);
+      setIsConnected(true);
+      // Clean up URL without refreshing
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
@@ -324,7 +339,9 @@ const BlackBoxViewContent: React.FC = () => {
     const randomWord1 = words[Math.floor(Math.random() * words.length)];
     const randomWord2 = words[Math.floor(Math.random() * words.length)];
     const randomNumber = Math.floor(Math.random() * 900) + 100;
-    setSyncRoomName(`${randomWord1}-${randomWord2}-${randomNumber}`);
+    const name = `${randomWord1}-${randomWord2}-${randomNumber}`;
+    setSyncRoomName(name);
+    return name;
   };
 
   const getStatusText = () => {
@@ -354,17 +371,14 @@ const BlackBoxViewContent: React.FC = () => {
                 </BackupButton>
               </MenuContainer>
             )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-              accept="application/json"
-            />
-            <RealityCheckButton onClick={() => setCurrentView("realitycheck")}>
-              {t("blackbox.reality_check")}
-            </RealityCheckButton>
-            <ControlButton onClick={toggleTheme}>
+                                  <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} accept="application/json" />
+                                  <RealityCheckButton onClick={() => setCurrentView("realitycheck")}>
+                                      {t("blackbox.reality_check")}
+                                  </RealityCheckButton>
+                                  <RealityCheckButton onClick={() => setCurrentView("eisenhower")} style={{ backgroundColor: "#e2e8f0", color: "#000" }}>
+                                      Prioritize
+                                  </RealityCheckButton>
+                                  <ControlButton onClick={toggleTheme}>
               {t("blackbox.change_theme", {
                 theme: theme === "dark" ? "Light" : "Dark",
               })}
@@ -395,6 +409,13 @@ const BlackBoxViewContent: React.FC = () => {
                 ? t("blackbox.disconnect")
                 : t("blackbox.connect_sync")}
             </ControlButton>
+            <ControlButton onClick={() => {
+                let name = syncRoomName;
+                if (!name) name = generateRoomName();
+                setShowQR(true);
+            }}>
+                QR Pairing
+            </ControlButton>
             <HelpIcon onClick={() => alert(t("blackbox.sync_help"))}>
               ?
             </HelpIcon>
@@ -409,6 +430,7 @@ const BlackBoxViewContent: React.FC = () => {
         <QuickCapture />
         <DrawingToolbar />
       </MainContent>
+      {showQR && <QRCodeModal roomName={syncRoomName} onClose={() => setShowQR(false)} />}
     </BlackBoxContainer>
   );
 };

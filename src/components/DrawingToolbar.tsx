@@ -11,6 +11,8 @@ const tools: { name: DrawingTool; icon: string }[] = [
   { name: "rectangle", icon: "▭" },
   { name: "circle", icon: "⭕" },
   { name: "triangle", icon: "△" },
+  { name: "lasso", icon: "🕸️" },
+  { name: "magic", icon: "✨" },
   { name: "pan", icon: "🖐️" },
   { name: "eraser", icon: "🧼" },
 ];
@@ -149,10 +151,11 @@ const DrawingToolbar: React.FC = () => {
     drawingTool === "triangle";
 
   const handleUndo = () => {
-    if (!awareness) return;
+    const awarenessInstance = awareness();
+    if (!awarenessInstance) return;
     const strokes = yStrokes().toArray();
     for (let i = strokes.length - 1; i >= 0; i--) {
-      if (strokes[i].clientID === awareness().clientID) {
+      if (strokes[i].clientID === awarenessInstance.clientID) {
         yStrokes().delete(i, 1);
         return;
       }

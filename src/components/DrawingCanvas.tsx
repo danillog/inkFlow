@@ -8,6 +8,7 @@ import { useUIStore, type DrawingTool } from "../store/uiStore";
 import { yStrokes, awareness } from "../lib/sync";
 import type { StrokeShape } from "../lib/db";
 import PerformanceMonitor from "./PerformanceMonitor";
+import { createWorker } from 'tesseract.js';
 
 const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
   position: absolute;
@@ -23,6 +24,10 @@ const CanvasContainer = styled.div<{ $tool: DrawingTool }>`
       case "rectangle":
       case "triangle":
         return "cell";
+      case "lasso":
+        return "crosshair";
+      case "magic":
+        return "wait"; 
       default:
         return "crosshair";
     }
@@ -54,10 +59,20 @@ const DrawingCanvas: React.FC = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<AppPoint | null>(null);
   const localStroke = useRef<Partial<DrawingStroke>>({});
+  const selectionPath = useRef<AppPoint[]>([]); // For lasso selection polygon
+  const [selectedStrokeIds, setSelectedStrokeIds] = useState<Set<string>>(new Set());
+  const isDraggingSelection = useRef(false);
+  const dragStartOffset = useRef<{ x: number, y: number } | null>(null);
+  
+  // Magic Tool State
+  const magicStrokesRef = useRef<DrawingStroke[]>([]);
+  const magicTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
 
   const { processStroke, isLoaded } = useInkEngine();
   const activeTaskId = useTaskStore((state) => state.activeTaskId);
   const canvasRevision = useTaskStore((state) => state.canvasRevision);
+  const addTask = useTaskStore((state) => state.addTask);
   
   const selectedColor = useUIStore((state) => state.selectedColor);
   const drawingTool = useUIStore((state) => state.drawingTool);
@@ -110,6 +125,17 @@ const DrawingCanvas: React.FC = () => {
           maxY: Math.max(...ys),
         };
       }
+      case "stroke": {
+         if (shape.points.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+         for (const p of shape.points) {
+             if (p.x < minX) minX = p.x;
+             if (p.x > maxX) maxX = p.x;
+             if (p.y < minY) minY = p.y;
+             if (p.y > maxY) maxY = p.y;
+         }
+         return { minX, maxX, minY, maxY };
+      }
       default:
         return {
           minX: -Infinity,
@@ -118,6 +144,19 @@ const DrawingCanvas: React.FC = () => {
           maxY: Infinity,
         };
     }
+  };
+
+  const isPointInPolygon = (point: { x: number, y: number }, polygon: AppPoint[]) => {
+      let inside = false;
+      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+          const xi = polygon[i].x, yi = polygon[i].y;
+          const xj = polygon[j].x, yj = polygon[j].y;
+          
+          const intersect = ((yi > point.y) !== (yj > point.y))
+              && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+      }
+      return inside;
   };
 
   const drawTextInShape = (
@@ -201,9 +240,18 @@ const DrawingCanvas: React.FC = () => {
 
   const drawShape = useCallback(
     (ctx: CanvasRenderingContext2D, shape: DrawingStroke) => {
-      ctx.strokeStyle = shape.color || colors.text;
-      ctx.fillStyle = shape.color || colors.text;
-      ctx.lineWidth = 2 / zoom;
+      const isSelected = selectedStrokeIds.has(shape.id);
+      
+      ctx.strokeStyle = isSelected ? colors.accent : (shape.color || colors.text);
+      ctx.fillStyle = isSelected ? colors.accent : (shape.color || colors.text);
+      ctx.lineWidth = (isSelected ? 3 : 2) / zoom;
+      
+      if (isSelected) {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = colors.accent;
+      } else {
+          ctx.shadowBlur = 0;
+      }
 
       switch (shape.type) {
         case "stroke": {
@@ -263,8 +311,9 @@ const DrawingCanvas: React.FC = () => {
           }
           break;
       }
+      ctx.shadowBlur = 0;
     },
-    [processStroke, zoom, colors.text, engineType, setLastStrokePerformance]
+    [processStroke, zoom, colors.text, engineType, setLastStrokePerformance, selectedStrokeIds, colors.accent]
   );
 
   const redrawAllShapes = useCallback(() => {
@@ -325,6 +374,91 @@ const DrawingCanvas: React.FC = () => {
     [getStrokeUnderPoint]
   );
 
+  // OCR Processing Logic
+  const processOCR = async () => {
+      if (magicStrokesRef.current.length === 0) return;
+      
+      setIsProcessingOCR(true);
+      const worker = await createWorker('eng');
+      
+      try {
+          // 1. Calculate bounding box of all magic strokes
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          
+          magicStrokesRef.current.forEach(stroke => {
+              if (stroke.type === 'stroke') {
+                  stroke.points.forEach(p => {
+                      minX = Math.min(minX, p.x);
+                      maxX = Math.max(maxX, p.x);
+                      minY = Math.min(minY, p.y);
+                      maxY = Math.max(maxY, p.y);
+                  });
+              }
+          });
+          
+          // Add padding
+          const padding = 20;
+          minX -= padding; minY -= padding;
+          maxX += padding; maxY += padding;
+          const width = maxX - minX;
+          const height = maxY - minY;
+
+          // 2. Draw these strokes onto a temporary white canvas for OCR
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = width;
+          tempCanvas.height = height;
+          const ctx = tempCanvas.getContext('2d');
+          if (!ctx) return;
+          
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, width, height);
+          ctx.translate(-minX, -minY);
+          
+          // Draw plain black lines for best OCR contrast
+          ctx.strokeStyle = 'black';
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          magicStrokesRef.current.forEach(stroke => {
+              if (stroke.type === 'stroke' && stroke.points.length > 1) {
+                  ctx.beginPath();
+                  ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                  for(let i=1; i<stroke.points.length; i++) {
+                      ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+                  }
+                  ctx.stroke();
+              }
+          });
+
+          // 3. Recognize
+          const { data: { text } } = await worker.recognize(tempCanvas);
+          
+          if (text && text.trim().length > 0) {
+              const cleanText = text.trim();
+              addTask(cleanText, 'personal'); // Add to tasks
+              
+              // Remove the ink strokes from Yjs
+              const strokeIdsToRemove = new Set(magicStrokesRef.current.map(s => s.id));
+              yStrokes().doc?.transact(() => {
+                  const arr = yStrokes().toArray();
+                  for(let i=arr.length-1; i>=0; i--) {
+                      if (strokeIdsToRemove.has(arr[i].id)) {
+                          yStrokes().delete(i, 1);
+                      }
+                  }
+              });
+          }
+      } catch (e) {
+          console.error("OCR Failed", e);
+      } finally {
+          await worker.terminate();
+          magicStrokesRef.current = [];
+          setIsProcessingOCR(false);
+      }
+  };
+
+
   useEffect(() => {
     const loop = () => {
       animationFrameRef.current = requestAnimationFrame(loop);
@@ -342,6 +476,19 @@ const DrawingCanvas: React.FC = () => {
           drawShape(bufferCtx, state.drawing);
         }
       });
+
+      if (drawingTool === 'lasso' && isDrawing && selectionPath.current.length > 0) {
+          bufferCtx.strokeStyle = colors.accent;
+          bufferCtx.lineWidth = 1 / zoom;
+          bufferCtx.setLineDash([5, 5]);
+          bufferCtx.beginPath();
+          bufferCtx.moveTo(selectionPath.current[0].x, selectionPath.current[0].y);
+          for (let i = 1; i < selectionPath.current.length; i++) {
+              bufferCtx.lineTo(selectionPath.current[i].x, selectionPath.current[i].y);
+          }
+          bufferCtx.stroke();
+          bufferCtx.setLineDash([]);
+      }
 
       if (drawingTool === "eraser") {
         bufferCtx.beginPath();
@@ -377,11 +524,12 @@ const DrawingCanvas: React.FC = () => {
     yStrokes().observe(handleObserve);
 
     const handleAwarenessChange = () => {
-      if (!awareness()) return;
-      const states = awareness().getStates();
+      const awarenessInstance = awareness();
+      if (!awarenessInstance) return;
+      const states = awarenessInstance.getStates();
       remoteStrokes.current.clear();
       states.forEach((state, clientID) => {
-        if (clientID !== awareness().clientID) {
+        if (clientID !== awarenessInstance.clientID) {
           remoteStrokes.current.set(clientID, state);
         }
       });
@@ -440,12 +588,12 @@ const DrawingCanvas: React.FC = () => {
   );
 
   const activePointers = useRef(new Map<number, { x: number; y: number }>());
-  const gestureState = useRef<"drawing" | "panning" | null>(null);
+  const gestureState = useRef<"drawing" | "panning" | "selection" | null>(null);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault();
-      if (!isLoaded) return;
+      if (!isLoaded || isProcessingOCR) return;
       (e.target as HTMLDivElement).setPointerCapture(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -462,9 +610,27 @@ const DrawingCanvas: React.FC = () => {
         const point = getScreenToWorldCoordinates(e.clientX, e.clientY);
         setStartPoint({ ...point, pressure: e.pressure || 0.5 });
         setIsDrawing(true);
+        
+        // Clear magic timer if user starts drawing again
+        if (magicTimerRef.current) {
+            clearTimeout(magicTimerRef.current);
+            magicTimerRef.current = null;
+        }
 
         if (drawingTool === "pan") {
           gestureState.current = "panning";
+        } else if (drawingTool === "lasso") {
+           const clickedStrokeId = getStrokeUnderPoint(point);
+           if (clickedStrokeId && selectedStrokeIds.has(clickedStrokeId)) {
+               isDraggingSelection.current = true;
+               dragStartOffset.current = point;
+               gestureState.current = "selection";
+           } else {
+               gestureState.current = "selection";
+               selectionPath.current = [{ ...point, pressure: 0 }];
+               setSelectedStrokeIds(new Set());
+               isDraggingSelection.current = false;
+           }
         } else {
           gestureState.current = "drawing";
         }
@@ -472,11 +638,11 @@ const DrawingCanvas: React.FC = () => {
         if (gestureState.current === "drawing") {
           const baseStroke = {
             id: `stroke-${awareness()?.clientID}-${Date.now()}`,
-            color: selectedColor,
+            color: drawingTool === 'magic' ? colors.secondaryAccent : selectedColor,
             clientID: awareness()?.clientID,
           };
 
-          if (drawingTool === "pen") {
+          if (drawingTool === "pen" || drawingTool === "magic") {
             localStroke.current = {
               ...baseStroke,
               type: "stroke",
@@ -510,7 +676,7 @@ const DrawingCanvas: React.FC = () => {
           } else if (drawingTool === "eraser") {
             eraseAtPoint(point);
           }
-          if (drawingTool !== "pan" && drawingTool !== "eraser") {
+          if (drawingTool !== "pan" && drawingTool !== "eraser" && drawingTool !== "lasso") {
             awareness()?.setLocalStateField("drawing", localStroke.current);
           }
         }
@@ -524,6 +690,10 @@ const DrawingCanvas: React.FC = () => {
       selectedColor,
       awareness,
       zoom,
+      getStrokeUnderPoint,
+      selectedStrokeIds,
+      isProcessingOCR,
+      colors.secondaryAccent
     ]
   );
 
@@ -545,10 +715,52 @@ const DrawingCanvas: React.FC = () => {
         return;
       }
 
-      if (gestureState.current === "drawing" && isDrawing) {
-        const currentPoint = getScreenToWorldCoordinates(e.clientX, e.clientY);
-        lastMousePosition.current = currentPoint;
+      const currentPoint = getScreenToWorldCoordinates(e.clientX, e.clientY);
+      lastMousePosition.current = currentPoint;
 
+      if (gestureState.current === "selection" && isDrawing) {
+          if (isDraggingSelection.current && dragStartOffset.current) {
+               const dx = currentPoint.x - dragStartOffset.current.x;
+               const dy = currentPoint.y - dragStartOffset.current.y;
+               
+               const yStrokesArray = yStrokes();
+               
+               yStrokes().doc?.transact(() => {
+                   selectedStrokeIds.forEach(id => {
+                       const index = yStrokesArray.toArray().findIndex(s => s.id === id);
+                       if (index !== -1) {
+                           const stroke = yStrokesArray.get(index);
+                           const newStroke = { ...stroke };
+                           
+                           if (newStroke.type === 'stroke') {
+                               newStroke.points = newStroke.points.map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+                           } else if (newStroke.type === 'rectangle') {
+                               newStroke.x += dx;
+                               newStroke.y += dy;
+                           } else if (newStroke.type === 'circle') {
+                               newStroke.cx += dx;
+                               newStroke.cy += dy;
+                           } else if (newStroke.type === 'triangle') {
+                               newStroke.p1 = { x: newStroke.p1.x + dx, y: newStroke.p1.y + dy };
+                               newStroke.p2 = { x: newStroke.p2.x + dx, y: newStroke.p2.y + dy };
+                               newStroke.p3 = { x: newStroke.p3.x + dx, y: newStroke.p3.y + dy };
+                           }
+                           
+                           yStrokesArray.delete(index, 1);
+                           yStrokesArray.insert(index, [newStroke]);
+                       }
+                   });
+               });
+               
+               dragStartOffset.current = currentPoint;
+               redrawAllShapes();
+          } else {
+              selectionPath.current.push({ ...currentPoint, pressure: 0 });
+          }
+          return;
+      }
+
+      if (gestureState.current === "drawing" && isDrawing) {
         if (drawingTool === "eraser") {
           eraseAtPoint(currentPoint);
           return;
@@ -560,7 +772,8 @@ const DrawingCanvas: React.FC = () => {
         const textPayload = shapeText ? { text: shapeText } : {};
 
         switch (drawingTool) {
-          case "pen": {
+          case "pen": 
+          case "magic": {
             const currentPenStroke =
               localStroke.current as Partial<StrokeShape>;
             updatedStroke = {
@@ -630,6 +843,8 @@ const DrawingCanvas: React.FC = () => {
       setPanOffset,
       eraseAtPoint,
       shapeText,
+      selectedStrokeIds,
+      redrawAllShapes
     ]
   );
 
@@ -639,7 +854,40 @@ const DrawingCanvas: React.FC = () => {
       activePointers.current.delete(e.pointerId);
 
       if (activePointers.current.size < 1) {
-        if (gestureState.current === "drawing" && localStroke.current.type) {
+          
+        if (gestureState.current === "selection") {
+            if (!isDraggingSelection.current && selectionPath.current.length > 2) {
+                const newSelection = new Set<string>();
+                existingStrokes.current.forEach(stroke => {
+                    let inside = false;
+                    const bounds = getShapeBounds(stroke);
+                    
+                    const pointsToCheck = [
+                        { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 },
+                        { x: bounds.minX, y: bounds.minY },
+                        { x: bounds.maxX, y: bounds.maxY }
+                    ];
+                    
+                    if (stroke.type === 'stroke') {
+                        if (stroke.points.some(p => isPointInPolygon(p, selectionPath.current))) {
+                            inside = true;
+                        }
+                    } else {
+                         if (pointsToCheck.some(p => isPointInPolygon(p, selectionPath.current))) {
+                             inside = true;
+                         }
+                    }
+                    
+                    if (inside) {
+                        newSelection.add(stroke.id);
+                    }
+                });
+                setSelectedStrokeIds(newSelection);
+                redrawAllShapes();
+            }
+            selectionPath.current = [];
+            isDraggingSelection.current = false;
+        } else if (gestureState.current === "drawing" && localStroke.current.type) {
           const isShapeTool =
             drawingTool === "rectangle" ||
             drawingTool === "circle" ||
@@ -656,6 +904,13 @@ const DrawingCanvas: React.FC = () => {
             )
           ) {
             yStrokes().push([finalShape]);
+            
+            // Magic Tool: Queue for processing
+            if (drawingTool === 'magic') {
+                magicStrokesRef.current.push(finalShape);
+                if (magicTimerRef.current) clearTimeout(magicTimerRef.current);
+                magicTimerRef.current = setTimeout(processOCR, 1500); // 1.5s delay before processing
+            }
           }
         }
 
@@ -666,7 +921,7 @@ const DrawingCanvas: React.FC = () => {
         awareness()?.setLocalStateField("drawing", null);
       }
     },
-    [drawingTool, shapeText, awareness, yStrokes]
+    [drawingTool, shapeText, awareness, yStrokes, getShapeBounds, redrawAllShapes]
   );
 
   const handleWheel = useCallback(
@@ -690,6 +945,15 @@ const DrawingCanvas: React.FC = () => {
     >
       <StyledCanvas ref={mainCanvasRef} />
       <StyledCanvas ref={bufferCanvasRef} />
+      {isProcessingOCR && (
+          <div style={{
+              position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+              background: '#238636', color: 'white', padding: '5px 10px', borderRadius: '5px',
+              fontFamily: 'sans-serif', fontSize: '0.8rem', pointerEvents: 'none'
+          }}>
+              Processing Text...
+          </div>
+      )}
       <PerformanceMonitor />
     </CanvasContainer>
   );

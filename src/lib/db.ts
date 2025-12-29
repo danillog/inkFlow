@@ -7,6 +7,8 @@ export interface Task {
   createdAt: number;
   completedAt?: number;
   category?: 'personal' | 'work';
+  urgency?: 'high' | 'low';
+  importance?: 'high' | 'low';
 }
 
 export interface StrokeShape {
@@ -45,16 +47,22 @@ export type DrawingStroke = {
   text?: string;
 } & (StrokeShape | RectangleShape | CircleShape | TriangleShape);
 
+export interface DailyStat {
+  date: string; // ISO format YYYY-MM-DD
+  count: number;
+}
 
 export class InkFlowDB extends Dexie {
   tasks!: Table<Task>;
   drawingStrokes!: Table<DrawingStroke>;
+  dailyStats!: Table<DailyStat>;
 
   constructor() {
     super('inkFlowDB');
-    this.version(3).stores({
-      tasks: '++id, content, status, createdAt, category',
+    this.version(4).stores({
+      tasks: '++id, content, status, createdAt, category, urgency, importance',
       drawingStrokes: '++id, taskId, createdAt',
+      dailyStats: 'date',
     });
   }
 }

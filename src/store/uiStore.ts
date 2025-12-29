@@ -1,7 +1,7 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { yUiState } from '../lib/sync';
 
-export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'pan' | 'eraser' | 'triangle';
+export type DrawingTool = 'pen' | 'rectangle' | 'circle' | 'pan' | 'eraser' | 'triangle' | 'lasso' | 'magic';
 export type DrawingInputMode = 'pen' | 'touch';
 
 export const darkTheme = {

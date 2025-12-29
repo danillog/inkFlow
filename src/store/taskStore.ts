@@ -2,7 +2,7 @@ import { create, type StoreApi } from 'zustand';
 import { type Task } from '../lib/db';
 import { yTasks, yUiState } from '../lib/sync';
 
-export type ViewMode = 'blackbox' | 'sniper' | 'realitycheck';
+export type ViewMode = 'blackbox' | 'sniper' | 'realitycheck' | 'eisenhower';
 
 export interface TaskStore {
   tasks: Task[];

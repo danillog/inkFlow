@@ -6,6 +6,8 @@ import TaskStack from './TaskStack';
 import QuickCapture from './QuickCapture';
 import SniperModeView from '../views/SniperModeView';
 import RealityCheckView from '../views/RealityCheckView';
+import EisenhowerView from '../views/EisenhowerView';
+import QRCodeModal from './QRCodeModal';
 import { db, type Task, type DrawingStroke } from '../lib/db';
 import { useTaskStore } from '../store/taskStore';
 import { useUIStore } from '../store/uiStore';
@@ -157,6 +159,7 @@ const MobileLayoutContent: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [syncRoomName, setSyncRoomName] = useState('');
     const [isConnected, setIsConnected] = useState(false);
+    const [showQR, setShowQR] = useState(false);
     const currentView = useTaskStore((state) => state.currentView);
     const setCurrentView = useTaskStore((state) => state.setCurrentView);
     const peerCount = useSyncStore((state) => state.peerCount);
@@ -171,6 +174,17 @@ const MobileLayoutContent: React.FC = () => {
         if (getCurrentRoomName()) {
             setSyncRoomName(getCurrentRoomName()!);
             setIsConnected(true);
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const roomParam = params.get('room');
+        if (roomParam) {
+            const cleanRoom = roomParam.trim();
+            setSyncRoomName(cleanRoom);
+            connectYjs(cleanRoom);
+            setIsConnected(true);
+            window.history.replaceState({}, '', window.location.pathname);
         }
     }, []);
 
@@ -261,7 +275,9 @@ const MobileLayoutContent: React.FC = () => {
         const randomWord1 = words[Math.floor(Math.random() * words.length)];
         const randomWord2 = words[Math.floor(Math.random() * words.length)];
         const randomNumber = Math.floor(Math.random() * 900) + 100;
-        setSyncRoomName(`${randomWord1}-${randomWord2}-${randomNumber}`);
+        const name = `${randomWord1}-${randomWord2}-${randomNumber}`;
+        setSyncRoomName(name);
+        return name;
     };
 
     const getStatusText = () => {
@@ -276,6 +292,10 @@ const MobileLayoutContent: React.FC = () => {
 
     if (currentView === 'realitycheck') {
       return <RealityCheckView />;
+    }
+    
+    if (currentView === 'eisenhower') {
+      return <EisenhowerView />;
     }
 
   return (
@@ -308,6 +328,9 @@ const MobileLayoutContent: React.FC = () => {
                       <RealityCheckButton onClick={() => setCurrentView("realitycheck")}>
                           {t("blackbox.reality_check")}
                       </RealityCheckButton>
+                      <RealityCheckButton onClick={() => setCurrentView("eisenhower")} style={{ backgroundColor: "#e2e8f0", color: "#000" }}>
+                          Prioritize
+                      </RealityCheckButton>
                       <ControlButton onClick={toggleTheme}>
                           {t("blackbox.change_theme", { theme: theme === "dark" ? "Light" : "Dark" })}
                       </ControlButton>
@@ -327,6 +350,13 @@ const MobileLayoutContent: React.FC = () => {
                       <ControlButton onClick={handleToggleSync} $isActive={isConnected}>
                           {isConnected ? t("blackbox.disconnect") : t("blackbox.connect_sync")}
                       </ControlButton>
+                      <ControlButton onClick={() => {
+                          let name = syncRoomName;
+                          if (!name) name = generateRoomName();
+                          setShowQR(true);
+                      }}>
+                          QR Pairing
+                      </ControlButton>
                       <HelpIcon onClick={() => alert(t("blackbox.sync_help"))}>?</HelpIcon>
                   </SyncControls>
                 </ControlsContainer>
@@ -344,6 +374,7 @@ const MobileLayoutContent: React.FC = () => {
           Settings
         </TabButton>
       </TabBar>
+      {showQR && <QRCodeModal roomName={syncRoomName} onClose={() => setShowQR(false)} />}
     </MobileLayoutContainer>
   );
 };

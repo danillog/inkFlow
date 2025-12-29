@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { YjsSynchronizer } from './yjs-synchronizer';
 import { create, type StoreApi } from 'zustand';
-import { type TaskStore, type Task } from '../store/taskStore';
-import { type UIStore } from '../store/uiStore';
+import type { TaskStore } from '../store/taskStore';
+import type { Task, DrawingStroke } from './db';
+import type { UIStore } from '../store/uiStore';
 import * as Y from 'yjs';
 
 // Mock stores
@@ -156,7 +157,7 @@ describe('YjsSynchronizer', () => {
 
     
 
-                const stroke: DrawingStroke = { id: 'stroke-1', type: 'stroke', points: [{ x: 0, y: 0, pressure: 0.5 }], color: '#000000', clientID: 'client-A' };
+                const stroke: DrawingStroke = { id: 'stroke-1', type: 'stroke', points: [{ x: 0, y: 0, pressure: 0.5 }], color: '#000000', clientID: 123, createdAt: Date.now() };
 
     
 

@@ -3,6 +3,48 @@
     "title": "Where Ideas Flow and Work Gets Done",
     "subtitle": "The Anti-Todo List for Deep Thinkers.",
     "cta": "Try InkFlow (No Login Required)",
+    "new_features": {
+      "title": "New in InkFlow v2.0",
+      "eisenhower": {
+        "title": "Eisenhower Matrix",
+        "text": "Stop guessing what to do next. Drag your tasks into four quadrants to prioritize urgency and importance."
+      },
+      "heatmap": {
+        "title": "Productivity Heatmap",
+        "text": "Visualize your progress over the last year. A persistent record of your focus sessions and completed missions."
+      },
+      "qr_sync": {
+        "title": "Instant QR Pairing",
+        "text": "Connect your tablet or phone instantly. Scan a code and your canvas and tasks sync across all screens in real-time."
+      },
+      "lasso": {
+        "title": "Lasso Selection",
+        "text": "Your ink is now alive. Select, move, and reorganize your drawings with the new Lasso tool."
+      },
+      "magic_wand": {
+        "title": "Magic Wand (OCR)",
+        "text": "Convert handwriting to digital tasks using AI. Write it out, and watch it become data instantly."
+      }
+    },
+    "how_to_use": {
+      "title": "The InkFlow Workflow",
+      "step1": {
+        "title": "1. Capture (Blackbox)",
+        "text": "Dump your brain onto the infinite canvas. Sketches, code snippets, or raw notes."
+      },
+      "step2": {
+        "title": "2. Prioritize",
+        "text": "Use the Eisenhower view to decide what actually matters right now."
+      },
+      "step3": {
+        "title": "3. Focus (Sniper Mode)",
+        "text": "Lock into one task. The Pomodoro timer keeps you disciplined."
+      },
+      "step4": {
+        "title": "4. Analyze (Reality Check)",
+        "text": "End your day by reviewing your achievements and watching your heatmap grow."
+      }
+    },
     "benefits_over_paper": {
       "title": "Why InkFlow is Better Than Paper",
       "infinite_space": {
@@ -28,11 +70,11 @@
     },
     "pain_section": {
       "title": "The Pain: Analysis Paralysis",
-      "text": "You're a creator. A developer. Your mind generates ideas faster than you can write them down. But traditional tools force you into a vicious cycle: endless lists, daunting backlogs, and the procrastination that comes with overwhelm. Every new idea becomes a debt. The cheap dopamine from social media seems more appealing than facing the mountain of tasks you've created for yourself."
+      "text": "You're a creator. A developer. Your mind generates ideas faster than you can write them down. But traditional tools force you into a vicious cycle: endless lists, daunting backlogs, and the procrastination that comes with overwhelm. Every new idea becomes a debt."
     },
     "solution_section": {
-      "title": "The Solution: Black Box ➔ Sniper Mode",
-      "text": "InkFlow breaks this cycle with a two-step method.<br/><br/><strong>1. Black Box:</strong> An infinite canvas to capture everything—code, sketches, ideas—without friction. No judgment. Just flow.<br/><br/><strong>2. Sniper Mode:</strong> Drag ONE task from your pile into full focus mode. A Pomodoro timer protects you, and a context canvas keeps relevant information at hand. Nothing else exists. Just you and your mission."
+      "title": "The Solution: Flow Engineering",
+      "text": "InkFlow breaks this cycle with a high-performance system designed for deep work. It combines the tactile freedom of paper with the logic of digital synchronization."
     },
     "engineering_section": {
       "title": "Engineering Showcase",
